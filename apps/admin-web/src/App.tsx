@@ -8,6 +8,7 @@ import { Departamentos } from './pages/Departamentos'
 import { Residentes } from './pages/Residentes'
 import { Gastos } from './pages/Gastos'
 import { Toaster } from 'react-hot-toast'
+import { Avisos } from './pages/Avisos'
 
 function App() {
   const { user, loading, signIn, signOut, isAuthenticated } = useAuth()
@@ -107,6 +108,7 @@ function App() {
           <Route path="/departamentos" element={<Departamentos />} />
           <Route path="/residentes" element={<Residentes />} />
           <Route path="/gastos" element={<Gastos />} />
+          <Route path="/avisos" element={<Avisos />} />
         </Routes>
       </DashboardLayout>
     </BrowserRouter>

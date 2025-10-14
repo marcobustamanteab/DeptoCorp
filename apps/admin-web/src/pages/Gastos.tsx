@@ -3,10 +3,11 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
-import { Plus, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Plus, DollarSign, CheckCircle, Clock, XCircle, CheckCircle2 } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useGastos } from '../../../../packages/shared/hooks/useGastos'
-import { gastosDepartamentoService } from '@deptocorp/supabase-client'
+import { usePagos } from '../../../../packages/shared/hooks/usePagos'
+import { gastosDepartamentoService } from '../../../../packages/supabase-client/src'
 import toast, { Toaster } from 'react-hot-toast'
 
 interface GastoFormData {
@@ -37,7 +38,18 @@ export function Gastos() {
     isCreating,
   } = useGastos(selectedEdificio)
 
+  const { registrarPago, isRegistrandoPago } = usePagos()
+
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [showPagoModal, setShowPagoModal] = useState(false)
+  const [selectedGastoDepto, setSelectedGastoDepto] = useState<any>(null)
+  const [pagoForm, setPagoForm] = useState({
+    monto: 0,
+    metodo_pago: 'transferencia',
+    referencia_externa: '',
+    notas: '',
+  })
+
   const currentDate = new Date()
   const [formData, setFormData] = useState<GastoFormData>({
     edificio_id: '',
@@ -95,10 +107,8 @@ export function Gastos() {
       estado: 'pendiente' as const,
     }
 
-    // Crear el gasto común
     createGasto(gastoData, {
       onSuccess: async (nuevoGasto) => {
-        // Asignar automáticamente a todos los departamentos
         const { error } = await gastosDepartamentoService.asignarGastosTodos(
           nuevoGasto.id,
           formData.edificio_id
@@ -126,6 +136,33 @@ export function Gastos() {
     
     setGastosDetalle(data || [])
     setShowDetalle(true)
+  }
+
+  const handleRegistrarPago = (gastoDepto: any) => {
+    setSelectedGastoDepto(gastoDepto)
+    setPagoForm({
+      monto: Number(gastoDepto.monto),
+      metodo_pago: 'transferencia',
+      referencia_externa: '',
+      notas: '',
+    })
+    setShowPagoModal(true)
+  }
+
+  const handleSubmitPago = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!selectedGastoDepto) return
+
+    registrarPago({
+      gasto_departamento_id: selectedGastoDepto.id,
+      ...pagoForm,
+    }, {
+      onSuccess: () => {
+        setShowPagoModal(false)
+        handleVerDetalle(selectedGasto)
+      },
+    })
   }
 
   const calcularEstadisticas = (gastosDep: any[]) => {
@@ -176,7 +213,6 @@ export function Gastos() {
         </Button>
       </div>
 
-      {/* Selector de Edificio */}
       <Card className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Seleccionar Edificio
@@ -451,6 +487,7 @@ export function Gastos() {
                   <th className="px-4 py-2 text-left">Depto</th>
                   <th className="px-4 py-2 text-right">Monto</th>
                   <th className="px-4 py-2 text-center">Estado</th>
+                  <th className="px-4 py-2 text-center">Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -469,6 +506,18 @@ export function Gastos() {
                         {gd.estado}
                       </span>
                     </td>
+                    <td className="px-4 py-2 text-center">
+                      {gd.estado === 'pendiente' || gd.estado === 'atrasado' ? (
+                        <button
+                          onClick={() => handleRegistrarPago(gd)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          Registrar Pago
+                        </button>
+                      ) : (
+                        <CheckCircle2 className="text-green-600 mx-auto" size={18} />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -482,6 +531,94 @@ export function Gastos() {
             Cerrar
           </Button>
         </div>
+      </Modal>
+
+      {/* Modal Registrar Pago */}
+      <Modal
+        isOpen={showPagoModal}
+        onClose={() => setShowPagoModal(false)}
+        title="Registrar Pago"
+      >
+        <form onSubmit={handleSubmitPago} className="space-y-4">
+          {selectedGastoDepto && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600">Departamento</p>
+              <p className="font-bold text-lg">
+                Depto {selectedGastoDepto.departamento?.numero}
+              </p>
+              <p className="text-sm text-gray-600 mt-2">Monto a pagar</p>
+              <p className="font-bold text-2xl text-green-600">
+                ${Number(selectedGastoDepto.monto).toLocaleString()}
+              </p>
+            </div>
+          )}
+
+          <Input
+            label="Monto Pagado *"
+            type="number"
+            step="0.01"
+            value={pagoForm.monto}
+            onChange={(e) => setPagoForm({ ...pagoForm, monto: Number(e.target.value) })}
+            required
+            min="0"
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Método de Pago *
+            </label>
+            <select
+              value={pagoForm.metodo_pago}
+              onChange={(e) => setPagoForm({ ...pagoForm, metodo_pago: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="transferencia">Transferencia Bancaria</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="cheque">Cheque</option>
+              <option value="deposito">Depósito</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          <Input
+            label="Número de Referencia"
+            value={pagoForm.referencia_externa}
+            onChange={(e) => setPagoForm({ ...pagoForm, referencia_externa: e.target.value })}
+            placeholder="Ej: N° de transferencia, N° de cheque, etc"
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notas
+            </label>
+            <textarea
+              value={pagoForm.notas}
+              onChange={(e) => setPagoForm({ ...pagoForm, notas: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              placeholder="Observaciones adicionales..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setShowPagoModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={isRegistrandoPago}
+            >
+              {isRegistrandoPago ? 'Registrando...' : 'Registrar Pago'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   )
