@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
-import { Plus, Calendar, MapPin, Edit2, Trash2, Clock } from 'lucide-react'
+import { Plus, Calendar, MapPin, Trash2, Clock } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useDepartamentos } from '../../../../packages/shared/hooks/useDepartamentos'
 import { useEspaciosComunes } from '../../../../packages/shared/hooks/useEspaciosComunes'

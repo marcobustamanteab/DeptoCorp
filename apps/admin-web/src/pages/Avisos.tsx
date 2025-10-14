@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
-import { Plus, Edit2, Trash2, AlertCircle, Bell, Eye, EyeOff } from 'lucide-react'
+import { Plus, Edit2, Trash2, Bell, Eye, EyeOff } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useAvisos } from '../../../../packages/shared/hooks/useAvisos'
 import toast, { Toaster } from 'react-hot-toast'
