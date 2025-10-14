@@ -24,6 +24,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
     { path: '/departamentos', icon: Users, label: 'Departamentos' },
     { path: '/residentes', icon: Users, label: 'Residentes' },
     { path: '/gastos', icon: DollarSign, label: 'Gastos Comunes' },
+    { path: '/pagos', icon: DollarSign, label: 'Historial Pagos' },
     { path: '/avisos', icon: FileText, label: 'Avisos' },
     { path: '/reservas', icon: Calendar, label: 'Reservas' },
   ]
