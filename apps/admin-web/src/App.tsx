@@ -10,6 +10,8 @@ import { Gastos } from './pages/Gastos'
 import { Toaster } from 'react-hot-toast'
 import { Avisos } from './pages/Avisos'
 import { Pagos } from './pages/Pagos'
+import { Reservas } from './pages/Reservas'
+import { Reportes } from './pages/Reportes'
 
 function App() {
   const { user, loading, signIn, signOut, isAuthenticated } = useAuth()
@@ -111,6 +113,8 @@ function App() {
           <Route path="/gastos" element={<Gastos />} />
           <Route path="/avisos" element={<Avisos />} />
           <Route path="/pagos" element={<Pagos />} />
+          <Route path="/reservas" element={<Reservas />} />
+          <Route path="/reportes" element={<Reportes />} />
         </Routes>
       </DashboardLayout>
     </BrowserRouter>

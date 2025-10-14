@@ -6,6 +6,7 @@ export {
   residentesService,
   gastosService,
   avisosService,
+  gastosDepartamentoService,
 } from './database'
 
 export type {

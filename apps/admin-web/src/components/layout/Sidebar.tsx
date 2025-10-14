@@ -6,7 +6,8 @@ import {
   DollarSign, 
   FileText, 
   Calendar,
-  LogOut 
+  LogOut, 
+  FileDown
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
     { path: '/pagos', icon: DollarSign, label: 'Historial Pagos' },
     { path: '/avisos', icon: FileText, label: 'Avisos' },
     { path: '/reservas', icon: Calendar, label: 'Reservas' },
+    { path: '/reportes', icon: FileDown, label: 'Reportes' },
   ]
 
   return (

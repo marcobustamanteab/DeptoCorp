@@ -257,6 +257,62 @@ export const avisosService = {
   },
 }
 
+// ============================================
+// GASTOS DEPARTAMENTO
+// ============================================
+export const gastosDepartamentoService = {
+  async asignarGastosTodos(gastosComunId: string, edificioId: string) {
+    // Obtener todos los departamentos del edificio
+    const { data: departamentos, error: deptoError } = await supabase
+      .from('departamentos')
+      .select('id, numero, porcentaje_gastos')
+      .eq('edificio_id', edificioId)
+
+    if (deptoError) return { error: deptoError }
+    if (!departamentos || departamentos.length === 0) {
+      return { error: { message: 'No hay departamentos en este edificio' } }
+    }
+
+    // Obtener el monto total del gasto común
+    const { data: gastoComun, error: gastoError } = await supabase
+      .from('gastos_comunes')
+      .select('monto_total')
+      .eq('id', gastosComunId)
+      .single()
+
+    if (gastoError) return { error: gastoError }
+
+    // Calcular monto para cada departamento
+    const gastosDeptos = departamentos.map(depto => ({
+      gasto_comun_id: gastosComunId,
+      departamento_id: depto.id,
+      monto: (gastoComun.monto_total * (depto.porcentaje_gastos || 0)) / 100,
+      estado: 'pendiente' as const,
+    }))
+
+    // Insertar todos los gastos departamento
+    const { data, error } = await supabase
+      .from('gastos_departamento')
+      .insert(gastosDeptos)
+      .select()
+
+    return { data, error }
+  },
+
+  async getByGastoComun(gastosComunId: string) {
+    const { data, error } = await supabase
+      .from('gastos_departamento')
+      .select(`
+        *,
+        departamento:departamentos(numero, piso)
+      `)
+      .eq('gasto_comun_id', gastosComunId)
+      .order('departamento(numero)')
+    
+    return { data, error }
+  },
+}
+
 // Exportar types
 export type {
   Edificio,
