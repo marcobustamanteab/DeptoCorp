@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@deptocorp/supabase-client'
 
+interface Activity {
+  type: string
+  description: string
+  date: string | null
+  icon: string
+}
+
 export function useRecentActivity() {
   const { data: activities, isLoading } = useQuery({
     queryKey: ['recent-activity'],
@@ -33,24 +40,28 @@ export function useRecentActivity() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      const activities = [
+      const allActivities: Activity[] = [
         ...(gastosRecientes?.map(g => ({
           type: 'gasto',
-          description: `Gasto común creado para ${g.edificio?.nombre}`,
+          description: `Gasto común creado para ${g.edificio?.nombre || 'edificio'}`,
           date: g.created_at,
           icon: 'dollar',
         })) || []),
         ...(residentesRecientes?.map(r => ({
           type: 'residente',
-          description: `${r.nombre} agregado en ${r.departamento?.edificio?.nombre}`,
+          description: `${r.nombre} agregado en ${r.departamento?.edificio?.nombre || 'edificio'}`,
           date: r.created_at,
           icon: 'user',
         })) || []),
       ]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0
+          const dateB = b.date ? new Date(b.date).getTime() : 0
+          return dateB - dateA
+        })
         .slice(0, 5)
 
-      return activities
+      return allActivities
     },
   })
 

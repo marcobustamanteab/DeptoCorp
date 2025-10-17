@@ -153,7 +153,7 @@ export function Departamentos() {
           className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">-- Selecciona un edificio --</option>
-          {edificios.map((edificio) => (
+          {edificios.map((edificio: any) => (
             <option key={edificio.id} value={edificio.id}>
               {edificio.nombre}
             </option>
@@ -183,7 +183,7 @@ export function Departamentos() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {departamentos.map((depto) => (
+          {departamentos.map((depto: any) => (
             <Card key={depto.id}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ export function Departamentos() {
               disabled={!!editingDepartamento}
             >
               <option value="">-- Selecciona --</option>
-              {edificios.map((edificio) => (
+              {edificios.map((edificio: any) => (
                 <option key={edificio.id} value={edificio.id}>
                   {edificio.nombre}
                 </option>

@@ -186,7 +186,7 @@ export function Avisos() {
           className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">-- Selecciona un edificio --</option>
-          {edificios.map((edificio) => (
+          {edificios.map((edificio: any) => (
             <option key={edificio.id} value={edificio.id}>
               {edificio.nombre}
             </option>
@@ -216,7 +216,7 @@ export function Avisos() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {avisos.map((aviso) => {
+          {avisos.map((aviso: any) => {
             const prioridad = getPrioridadConfig(aviso.prioridad)
             const estaExpirado = aviso.fecha_expiracion && new Date(aviso.fecha_expiracion) < new Date()
 
@@ -314,7 +314,7 @@ export function Avisos() {
               disabled={!!editingAviso}
             >
               <option value="">-- Selecciona --</option>
-              {edificios.map((edificio) => (
+              {edificios.map((edificio: any) => (
                 <option key={edificio.id} value={edificio.id}>
                   {edificio.nombre}
                 </option>

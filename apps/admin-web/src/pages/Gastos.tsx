@@ -109,7 +109,7 @@ export function Gastos() {
     }
 
     createGasto(gastoData, {
-      onSuccess: async (nuevoGasto) => {
+      onSuccess: async (nuevoGasto: any) => {
         const { error } = await gastosDepartamentoService.asignarGastosTodos(
           nuevoGasto.id,
           formData.edificio_id
@@ -224,7 +224,7 @@ export function Gastos() {
           className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">-- Selecciona un edificio --</option>
-          {edificios.map((edificio) => (
+          {edificios.map((edificio: any) => (
             <option key={edificio.id} value={edificio.id}>
               {edificio.nombre}
             </option>
@@ -254,7 +254,7 @@ export function Gastos() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {gastos.map((gasto) => {
+          {gastos.map((gasto:any) => {
             const stats = calcularEstadisticas(gasto.gastos_departamento || [])
             const porcentajePagado = stats.total > 0 ? (stats.pagados / stats.total) * 100 : 0
 
@@ -363,7 +363,7 @@ export function Gastos() {
               required
             >
               <option value="">-- Selecciona --</option>
-              {edificios.map((edificio) => (
+              {edificios.map((edificio: any) => (
                 <option key={edificio.id} value={edificio.id}>
                   {edificio.nombre}
                 </option>

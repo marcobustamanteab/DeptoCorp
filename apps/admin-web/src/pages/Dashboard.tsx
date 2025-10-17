@@ -139,7 +139,7 @@ export function Dashboard() {
             <p className="text-gray-500 text-center py-8">No hay actividad reciente</p>
           ) : (
             <div className="space-y-3">
-              {activities.map((activity, index) => (
+              {activities.map((activity: any, index: number) => (
                 <div 
                   key={index}
                   className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0"
