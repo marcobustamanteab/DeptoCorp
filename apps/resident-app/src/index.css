@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  
+  /* Variables para safe areas de iOS */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overscroll-behavior-y: none; /* Previene bounce en iOS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  touch-action: pan-y; /* Mejor rendimiento touch */
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Safe Area para iPhone con notch */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Botones táctiles más grandes */
+button {
+  min-height: 44px; /* Tamaño mínimo recomendado por Apple */
+  min-width: 44px;
+}
+
+/* Inputs más grandes para móvil */
+input, select, textarea {
+  font-size: 16px !important; /* Previene zoom en iOS */
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animaciones suaves */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    transition-duration: 150ms;
+  }
+}
+
+/* Pull to refresh personalizado (opcional) */
+@media (pointer: coarse) {
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Fix para 100vh en móviles */
+.min-h-screen-mobile {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Ocultar scrollbar pero mantener funcionalidad */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
