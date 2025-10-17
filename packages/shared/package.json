@@ -7,7 +7,11 @@
   "dependencies": {
     "@tanstack/react-query": "^5.62.14",
     "react-hot-toast": "^2.4.1",
-    "@deptocorp/supabase-client": "workspace:*"
+    "@deptocorp/supabase-client": "workspace:*",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0"
   },
   "peerDependencies": {
     "react": "^19.0.0"

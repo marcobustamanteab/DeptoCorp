@@ -27,7 +27,7 @@ export function useAvisos(edificioId?: string) {
       
       const { data, error } = await avisosService.create({
         ...aviso,
-        created_by: user?.id || null,
+        created_by: aviso.created_by || user?.id || null,
       })
       if (error) throw error
       return data

@@ -6,6 +6,28 @@ import { DollarSign, FileText, Calendar } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+interface Pago {
+  id: string
+  monto: number
+  metodo_pago: string
+  referencia_externa: string | null
+  estado: string
+  fecha_pago: string | null
+  gasto_departamento?: {
+    monto: number
+    departamento?: {
+      numero: string
+      edificio?: {
+        nombre: string
+      }
+    }
+    gasto_comun?: {
+      mes: number
+      anio: number
+    }
+  }
+}
+
 export function Pagos() {
   const [filtroMetodo, setFiltroMetodo] = useState<string>('')
   const [filtroEstado, setFiltroEstado] = useState<string>('')
@@ -39,7 +61,7 @@ export function Pagos() {
       const { data, error } = await query
 
       if (error) throw error
-      return data
+      return data as Pago[]
     },
   })
 
@@ -183,24 +205,26 @@ export function Pagos() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {pagos.map((pago) => (
+                {pagos.map((pago: Pago) => (
                   <tr key={pago.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(pago.fecha_pago).toLocaleDateString()}
+                      {pago.fecha_pago ? new Date(pago.fecha_pago).toLocaleDateString() : '-'}
                       <br />
-                      <span className="text-xs text-gray-400">
-                        {formatDistanceToNow(new Date(pago.fecha_pago), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </span>
+                      {pago.fecha_pago && (
+                        <span className="text-xs text-gray-400">
+                          {formatDistanceToNow(new Date(pago.fecha_pago), {
+                            addSuffix: true,
+                            locale: es,
+                          })}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="font-medium text-gray-800">
-                        {pago.gasto_departamento?.departamento?.edificio?.nombre}
+                        {pago.gasto_departamento?.departamento?.edificio?.nombre || '-'}
                       </div>
                       <div className="text-gray-600">
-                        Depto {pago.gasto_departamento?.departamento?.numero}
+                        Depto {pago.gasto_departamento?.departamento?.numero || '-'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
@@ -212,7 +236,7 @@ export function Pagos() {
                       ${Number(pago.monto).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 capitalize">
-                      {pago.metodo_pago}
+                      {pago.metodo_pago || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {pago.referencia_externa || '-'}
@@ -223,7 +247,7 @@ export function Pagos() {
                         pago.estado === 'rechazado' ? 'bg-red-100 text-red-800' :
                         'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {pago.estado}
+                        {pago.estado || 'pendiente'}
                       </span>
                     </td>
                   </tr>

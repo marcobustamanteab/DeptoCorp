@@ -17,7 +17,7 @@ export function useAuth() {
 
     // Escuchar cambios de autenticación
     const { data: { subscription } } = authService.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
