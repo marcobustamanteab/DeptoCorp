@@ -12,6 +12,7 @@ import { Avisos } from './pages/Avisos'
 import { Pagos } from './pages/Pagos'
 import { Reservas } from './pages/Reservas'
 import { Reportes } from './pages/Reportes'
+import { ValidarComprobantes } from './pages/ValidarComprobantes'
 
 function App() {
   const { user, loading, signIn, signOut, isAuthenticated } = useAuth()
@@ -115,6 +116,7 @@ function App() {
           <Route path="/pagos" element={<Pagos />} />
           <Route path="/reservas" element={<Reservas />} />
           <Route path="/reportes" element={<Reportes />} />
+          <Route path="/validar-comprobantes" element={<ValidarComprobantes />} />
         </Routes>
       </DashboardLayout>
     </BrowserRouter>

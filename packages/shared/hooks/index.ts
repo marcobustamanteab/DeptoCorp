@@ -27,3 +27,9 @@ export {
   useCreateReserva,
   useCancelReserva
 } from './useResidentReservas'
+
+// Exports de Comprobantes
+export {
+  useSubirComprobante,
+  useComprobantesGasto
+} from './useComprobantes'
