@@ -7,19 +7,20 @@ import { Input } from '../components/ui/Input'
 import { Plus, Edit2, Trash2, Home } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useDepartamentos } from '../../../../packages/shared/hooks/useDepartamentos'
-import toast, { Toaster } from 'react-hot-toast'
+import { Toaster } from 'react-hot-toast'
+import { showDeleteConfirm, showWarning, showLoading, closeLoading, showError, showSuccess } from '../utils/alerts'
 
 interface DepartamentoFormData {
   edificio_id: string
   numero: string
-  piso: number
-  metros_cuadrados: number
-  porcentaje_gastos: number
+  piso: number | ''
+  metros_cuadrados: number | ''
+  porcentaje_gastos: number | ''
 }
 
 export function Departamentos() {
   const { edificios } = useEdificios()
-  const [selectedEdificio, setSelectedEdificio] = useState<string>('')
+  const [selectedEdificio, setSelectedEdificio] = useState('')
   
   const { 
     departamentos, 
@@ -36,9 +37,9 @@ export function Departamentos() {
   const [formData, setFormData] = useState<DepartamentoFormData>({
     edificio_id: '',
     numero: '',
-    piso: 1,
-    metros_cuadrados: 0,
-    porcentaje_gastos: 0,
+    piso: '',
+    metros_cuadrados: '',
+    porcentaje_gastos: '',
   })
 
   const handleOpenModal = (departamento?: any) => {
@@ -47,18 +48,18 @@ export function Departamentos() {
       setFormData({
         edificio_id: departamento.edificio_id,
         numero: departamento.numero,
-        piso: departamento.piso || 1,
-        metros_cuadrados: departamento.metros_cuadrados || 0,
-        porcentaje_gastos: departamento.porcentaje_gastos || 0,
+        piso: departamento.piso || '',
+        metros_cuadrados: departamento.metros_cuadrados || '',
+        porcentaje_gastos: departamento.porcentaje_gastos || '',
       })
     } else {
       setEditingDepartamento(null)
       setFormData({
-        edificio_id: selectedEdificio || '',
+        edificio_id: selectedEdificio,
         numero: '',
-        piso: 1,
-        metros_cuadrados: 0,
-        porcentaje_gastos: 0,
+        piso: '',
+        metros_cuadrados: '',
+        porcentaje_gastos: '',
       })
     }
     setIsModalOpen(true)
@@ -70,42 +71,103 @@ export function Departamentos() {
     setFormData({
       edificio_id: '',
       numero: '',
-      piso: 1,
-      metros_cuadrados: 0,
-      porcentaje_gastos: 0,
+      piso: '',
+      metros_cuadrados: '',
+      porcentaje_gastos: '',
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validaciones con SweetAlert2
     if (!formData.edificio_id) {
-      toast.error('Debes seleccionar un edificio')
+      showWarning('Debes seleccionar un edificio')
       return
     }
 
     if (!formData.numero.trim()) {
-      toast.error('El número de departamento es obligatorio')
+      showWarning('El número de departamento es obligatorio')
       return
     }
 
-    if (editingDepartamento) {
-      updateDepartamento(
-        { id: editingDepartamento.id, ...formData },
-        {
-          onSuccess: () => handleCloseModal(),
-        }
-      )
-    } else {
-      createDepartamento(formData, {
-        onSuccess: () => handleCloseModal(),
-      })
+    // Validar porcentaje de gastos
+    if (formData.porcentaje_gastos !== '' && 
+        (Number(formData.porcentaje_gastos) < 0 || Number(formData.porcentaje_gastos) > 100)) {
+      showWarning('El porcentaje de gastos debe estar entre 0 y 100')
+      return
+    }
+
+    // Preparar datos
+    const dataToSubmit = {
+      edificio_id: formData.edificio_id,
+      numero: formData.numero,
+      piso: formData.piso === '' ? null : Number(formData.piso),
+      metros_cuadrados: formData.metros_cuadrados === '' ? null : Number(formData.metros_cuadrados),
+      porcentaje_gastos: formData.porcentaje_gastos === '' ? 0 : Number(formData.porcentaje_gastos),
+    }
+
+    try {
+      showLoading(editingDepartamento ? 'Actualizando departamento...' : 'Creando departamento...')
+
+      if (editingDepartamento) {
+        updateDepartamento(
+          { id: editingDepartamento.id, ...dataToSubmit },
+          {
+            onSuccess: () => {
+              closeLoading()
+              showSuccess('Departamento actualizado correctamente')
+              handleCloseModal()
+            },
+            onError: () => {
+              closeLoading()
+              showError('No se pudo actualizar el departamento')
+            }
+          }
+        )
+      } else {
+        createDepartamento(dataToSubmit, {
+          onSuccess: () => {
+            closeLoading()
+            showSuccess('Departamento creado correctamente')
+            handleCloseModal()
+          },
+          onError: () => {
+            closeLoading()
+            showError('No se pudo crear el departamento. Verifica que el número no esté duplicado.')
+          }
+        })
+      }
+    } catch (error) {
+      console.log(error)
+      closeLoading()
+      showError('Ocurrió un error inesperado')
     }
   }
 
-  const handleDelete = (id: string, numero: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar el departamento "${numero}"?`)) {
-      deleteDepartamento(id)
+  const handleDelete = async (id: string, numero: string) => {
+    // Confirmación con SweetAlert2
+    const confirmed = await showDeleteConfirm(`Departamento ${numero}`)
+    
+    if (!confirmed) return
+
+    try {
+      showLoading('Eliminando departamento...')
+      
+      deleteDepartamento(id, {
+        onSuccess: () => {
+          closeLoading()
+          showSuccess('Departamento eliminado correctamente')
+        },
+        onError: () => {
+          closeLoading()
+          showError('No se pudo eliminar el departamento. Puede tener residentes o gastos asociados.')
+        }
+      })
+    } catch (error) {
+      console.log(error)
+      closeLoading()
+      showError('Ocurrió un error inesperado')
     }
   }
 
@@ -194,28 +256,24 @@ export function Departamentos() {
                     <h3 className="font-bold text-lg text-gray-800">
                       Depto {depto.numero}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Piso {depto.piso}
-                    </p>
+                    {depto.piso && (
+                      <p className="text-sm text-gray-500">
+                        Piso {depto.piso}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">M² construidos:</span>
-                  <span className="font-medium">{depto.metros_cuadrados} m²</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">% Gastos comunes:</span>
-                  <span className="font-medium">{depto.porcentaje_gastos}%</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Residentes:</span>
-                  <span className="font-medium">
-                    {depto.residentes?.length || 0}
-                  </span>
-                </div>
+              <div className="space-y-2 mb-4 text-sm">
+                {depto.metros_cuadrados && (
+                  <p className="text-gray-600">
+                    <span className="font-medium">M²:</span> {depto.metros_cuadrados}
+                  </p>
+                )}
+                <p className="text-gray-600">
+                  <span className="font-medium">% Gastos:</span> {depto.porcentaje_gastos || 0}%
+                </p>
               </div>
 
               <div className="flex gap-2">
@@ -247,7 +305,7 @@ export function Departamentos() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Edificio *
             </label>
             <select
@@ -257,7 +315,7 @@ export function Departamentos() {
               required
               disabled={!!editingDepartamento}
             >
-              <option value="">-- Selecciona --</option>
+              <option value="">-- Selecciona un edificio --</option>
               {edificios.map((edificio: any) => (
                 <option key={edificio.id} value={edificio.id}>
                   {edificio.nombre}
@@ -267,10 +325,10 @@ export function Departamentos() {
           </div>
 
           <Input
-            label="Número/ID del Departamento *"
+            label="Número de Departamento *"
             value={formData.numero}
             onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-            placeholder="Ej: 101, A-2, etc"
+            placeholder="Ej: 101, A-3"
             required
           />
 
@@ -278,8 +336,8 @@ export function Departamentos() {
             label="Piso"
             type="number"
             value={formData.piso}
-            onChange={(e) => setFormData({ ...formData, piso: Number(e.target.value) })}
-            min="0"
+            onChange={(e) => setFormData({ ...formData, piso: e.target.value === '' ? '' : Number(e.target.value) })}
+            placeholder="Ej: 1, 2, 3"
           />
 
           <Input
@@ -287,19 +345,24 @@ export function Departamentos() {
             type="number"
             step="0.01"
             value={formData.metros_cuadrados}
-            onChange={(e) => setFormData({ ...formData, metros_cuadrados: Number(e.target.value) })}
-            min="0"
+            onChange={(e) => setFormData({ ...formData, metros_cuadrados: e.target.value === '' ? '' : Number(e.target.value) })}
+            placeholder="Ej: 65.5"
           />
 
           <Input
-            label="Porcentaje Gastos Comunes (%)"
+            label="Porcentaje de Gastos Comunes (%)"
             type="number"
             step="0.01"
-            value={formData.porcentaje_gastos}
-            onChange={(e) => setFormData({ ...formData, porcentaje_gastos: Number(e.target.value) })}
             min="0"
             max="100"
+            value={formData.porcentaje_gastos}
+            onChange={(e) => setFormData({ ...formData, porcentaje_gastos: e.target.value === '' ? '' : Number(e.target.value) })}
+            placeholder="Ej: 2.5"
           />
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+            💡 El porcentaje de gastos determina cuánto debe pagar este departamento del total mensual.
+          </div>
 
           <div className="flex gap-3 pt-4">
             <Button

@@ -3,12 +3,13 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
-import { Plus, Edit2, Trash2, Bell, Eye, EyeOff } from 'lucide-react'
+import { Plus, Edit2, Trash2, Bell } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useAvisos } from '../../../../packages/shared/hooks/useAvisos'
 import toast, { Toaster } from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { showDeleteConfirm } from '../utils/alerts'
 
 interface AvisoFormData {
   edificio_id: string
@@ -16,11 +17,6 @@ interface AvisoFormData {
   contenido: string
   prioridad: 'baja' | 'normal' | 'alta' | 'urgente'
   fecha_expiracion: string
-}
-
-interface Edificio {
-  id: string
-  nombre: string
 }
 
 const PRIORIDADES = [
@@ -40,7 +36,6 @@ export function Avisos() {
     createAviso, 
     updateAviso, 
     deleteAviso,
-    desactivarAviso,
     isCreating,
     isUpdating,
   } = useAvisos(selectedEdificio)
@@ -58,12 +53,20 @@ export function Avisos() {
   const handleOpenModal = (aviso?: Record<string, unknown>) => {
     if (aviso) {
       setEditingAviso(aviso)
+      
+      // FIX: Formatear la fecha correctamente
+      let fechaExpiracion = ''
+      if (aviso.fecha_expiracion) {
+        const fecha = new Date(aviso.fecha_expiracion as string)
+        fechaExpiracion = fecha.toISOString().split('T')[0]
+      }
+      
       setFormData({
         edificio_id: (aviso.edificio_id as string) || '',
         titulo: (aviso.titulo as string) || '',
         contenido: (aviso.contenido as string) || '',
         prioridad: (aviso.prioridad as 'baja' | 'normal' | 'alta' | 'urgente') || 'normal',
-        fecha_expiracion: (aviso.fecha_expiracion as string) || '',
+        fecha_expiracion: fechaExpiracion,
       })
     } else {
       setEditingAviso(null)
@@ -90,56 +93,58 @@ export function Avisos() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-  if (!formData.edificio_id) {
-    toast.error('Debes seleccionar un edificio')
-    return
-  }
-
-  if (!formData.titulo.trim()) {
-    toast.error('El título es obligatorio')
-    return
-  }
-
-  if (!formData.contenido.trim()) {
-    toast.error('El contenido es obligatorio')
-    return
-  }
-
-  const avisoData = {
-    ...formData,
-    activo: true,
-    fecha_publicacion: new Date().toISOString(),
-    created_by: undefined,
-  }
-
-  if (editingAviso) {
-    updateAviso(
-      { id: editingAviso.id as string, ...avisoData },
-      {
-        onSuccess: () => handleCloseModal(),
-      }
-    )
-  } createAviso(avisoData as never, {
-  onSuccess: () => handleCloseModal(),
-})
-  }
-
-
-  const handleDelete = (id: string, titulo: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar el aviso "${titulo}"?`)) {
-      deleteAviso(id)
+    // Validaciones simples con toast
+    if (!formData.edificio_id) {
+      toast.error('Debes seleccionar un edificio')
+      return
     }
-  }
 
-  const handleToggleActivo = (aviso: Record<string, unknown>) => {
-    if (aviso.activo) {
-      desactivarAviso(aviso.id as string)
+    if (!formData.titulo.trim()) {
+      toast.error('El título del aviso es obligatorio')
+      return
+    }
+
+    if (!formData.contenido.trim()) {
+      toast.error('El contenido del aviso es obligatorio')
+      return
+    }
+
+    const avisoData = {
+      ...formData,
+      activo: true,
+      fecha_publicacion: new Date().toISOString(),
+      created_by: undefined,
+      fecha_expiracion: formData.fecha_expiracion || null,
+    }
+
+    if (editingAviso) {
+      updateAviso(
+        { id: editingAviso.id as string, ...avisoData },
+        {
+          onSuccess: () => {
+            handleCloseModal()
+          }
+        }
+      )
     } else {
-      updateAviso({ id: aviso.id as string, activo: true })
+      createAviso(avisoData as never, {
+        onSuccess: () => {
+          handleCloseModal()
+        }
+      })
     }
+  }
+
+  const handleDelete = async (id: string, titulo: string) => {
+    // Solo confirmación con SweetAlert2 para eliminar
+    const confirmed = await showDeleteConfirm(titulo)
+    
+    if (!confirmed) return
+
+    deleteAviso(id)
   }
 
   const getPrioridadConfig = (prioridad: string | null | undefined) => {
@@ -169,7 +174,7 @@ export function Avisos() {
       <Toaster position="top-right" />
       
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Avisos y Comunicados</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Avisos</h1>
         <Button 
           onClick={() => handleOpenModal()}
           disabled={!selectedEdificio}
@@ -190,7 +195,7 @@ export function Avisos() {
           className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">-- Selecciona un edificio --</option>
-          {edificios.map((edificio: Edificio) => (
+          {edificios.map((edificio) => (
             <option key={edificio.id} value={edificio.id}>
               {edificio.nombre}
             </option>
@@ -219,69 +224,44 @@ export function Avisos() {
           </div>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
           {avisos.map((aviso) => {
-            const prioridad = getPrioridadConfig(aviso.prioridad as string)
-            const fechaExp = aviso.fecha_expiracion as string | null
-            const estaExpirado = fechaExp && new Date(fechaExp) < new Date()
-
+            const prioridadConfig = getPrioridadConfig(aviso.prioridad as string)
+            
             return (
-              <Card key={aviso.id as string} className={!aviso.activo ? 'opacity-60' : ''}>
-                <div className="flex items-start justify-between gap-4">
+              <Card key={aviso.id}>
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl">{prioridad.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg text-gray-800">
-                            {aviso.titulo as string}
-                          </h3>
-                          {!aviso.activo && (
-                            <span className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-full">
-                              Inactivo
-                            </span>
-                          )}
-                          {estaExpirado && (
-                            <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">
-                              Expirado
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${prioridad.color}`}>
-                            {prioridad.label}
-                          </span>
-                          {aviso.fecha_publicacion && (
-                            <span className="text-xs text-gray-500">
-                              {formatDistanceToNow(new Date(aviso.fecha_publicacion as string), {
-                                addSuffix: true,
-                                locale: es,
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      <span className={`${prioridadConfig.color} px-3 py-1 rounded-full text-xs font-semibold`}>
+                        {prioridadConfig.icon} {prioridadConfig.label}
+                      </span>
                     </div>
-
-                    <p className="text-gray-700 mt-3 whitespace-pre-wrap">
+                    
+                    <h3 className="font-bold text-lg text-gray-800 mb-2">
+                      {aviso.titulo as string}
+                    </h3>
+                    
+                    <p className="text-gray-600 mb-3 line-clamp-2">
                       {aviso.contenido as string}
                     </p>
-
-                    {aviso.fecha_expiracion && (
-                      <p className="text-sm text-gray-500 mt-3">
-                        Expira: {new Date(aviso.fecha_expiracion as string).toLocaleDateString()}
-                      </p>
-                    )}
+                    
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>
+                        📅 {formatDistanceToNow(new Date(aviso.fecha_publicacion as string), { 
+                          addSuffix: true, 
+                          locale: es 
+                        })}
+                      </span>
+                      {aviso.fecha_expiracion && (
+                        <span>
+                          ⏰ Expira: {new Date(aviso.fecha_expiracion as string).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleToggleActivo(aviso)}
-                      title={aviso.activo ? 'Desactivar' : 'Activar'}
-                    >
-                      {aviso.activo ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </Button>
+                  <div className="flex gap-2 ml-4">
                     <Button
                       variant="secondary"
                       onClick={() => handleOpenModal(aviso)}
@@ -310,7 +290,7 @@ export function Avisos() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Edificio *
             </label>
             <select
@@ -320,8 +300,8 @@ export function Avisos() {
               required
               disabled={!!editingAviso}
             >
-              <option value="">-- Selecciona --</option>
-              {edificios.map((edificio: Edificio) => (
+              <option value="">-- Selecciona un edificio --</option>
+              {edificios.map((edificio) => (
                 <option key={edificio.id} value={edificio.id}>
                   {edificio.nombre}
                 </option>
@@ -338,26 +318,26 @@ export function Avisos() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Contenido *
             </label>
             <textarea
               value={formData.contenido}
               onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Escribe el contenido del aviso..."
               rows={5}
-              placeholder="Escribe el mensaje completo del aviso..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Prioridad *
             </label>
             <select
               value={formData.prioridad}
-              onChange={(e) => setFormData({ ...formData, prioridad: e.target.value as 'baja' | 'normal' | 'alta' | 'urgente' })}
+              onChange={(e) => setFormData({ ...formData, prioridad: e.target.value as any })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
@@ -370,16 +350,14 @@ export function Avisos() {
           </div>
 
           <Input
-            label="Fecha de Expiración (Opcional)"
+            label="Fecha de Expiración (opcional)"
             type="date"
             value={formData.fecha_expiracion}
             onChange={(e) => setFormData({ ...formData, fecha_expiracion: e.target.value })}
           />
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              💡 Los avisos serán visibles para todos los residentes del edificio en su app.
-            </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+            💡 Los avisos urgentes aparecerán destacados para todos los residentes
           </div>
 
           <div className="flex gap-3 pt-4">

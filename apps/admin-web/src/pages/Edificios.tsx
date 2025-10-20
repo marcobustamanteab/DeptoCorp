@@ -6,7 +6,8 @@ import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Plus, Edit2, Trash2, Building2 } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
-import toast, { Toaster } from 'react-hot-toast'
+import { Toaster } from 'react-hot-toast'
+import { showDeleteConfirm, showWarning, showLoading, closeLoading, showError, showSuccess } from '../utils/alerts'
 
 interface EdificioFormData {
   nombre: string
@@ -67,31 +68,76 @@ export function Edificios() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validación con SweetAlert2
     if (!formData.nombre.trim()) {
-      toast.error('El nombre es obligatorio')
+      showWarning('El nombre del edificio es obligatorio')
       return
     }
 
-    if (editingEdificio) {
-      updateEdificio(
-        { id: editingEdificio.id, ...formData },
-        {
-          onSuccess: () => handleCloseModal(),
-        }
-      )
-    } else {
-      createEdificio(formData, {
-        onSuccess: () => handleCloseModal(),
-      })
+    try {
+      showLoading(editingEdificio ? 'Actualizando edificio...' : 'Creando edificio...')
+
+      if (editingEdificio) {
+        updateEdificio(
+          { id: editingEdificio.id, ...formData },
+          {
+            onSuccess: () => {
+              closeLoading()
+              showSuccess('Edificio actualizado correctamente')
+              handleCloseModal()
+            },
+            onError: () => {
+              closeLoading()
+              showError('No se pudo actualizar el edificio')
+            }
+          }
+        )
+      } else {
+        createEdificio(formData, {
+          onSuccess: () => {
+            closeLoading()
+            showSuccess('Edificio creado correctamente')
+            handleCloseModal()
+          },
+          onError: () => {
+            closeLoading()
+            showError('No se pudo crear el edificio')
+          }
+        })
+      }
+    } catch (error) {
+      console.log(error)
+      closeLoading()
+      showError('Ocurrió un error inesperado')
     }
   }
 
-  const handleDelete = (id: string, nombre: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar el edificio "${nombre}"?`)) {
-      deleteEdificio(id)
+  const handleDelete = async (id: string, nombre: string) => {
+    // Confirmación con SweetAlert2
+    const confirmed = await showDeleteConfirm(nombre)
+    
+    if (!confirmed) return
+
+    try {
+      showLoading('Eliminando edificio...')
+      
+      deleteEdificio(id, {
+        onSuccess: () => {
+          closeLoading()
+          showSuccess('Edificio eliminado correctamente')
+        },
+        onError: () => {
+          closeLoading()
+          showError('No se pudo eliminar el edificio. Puede tener departamentos asociados.')
+        }
+      })
+    } catch (error) {
+      console.log(error)
+      closeLoading()
+      showError('Ocurrió un error inesperado')
     }
   }
 

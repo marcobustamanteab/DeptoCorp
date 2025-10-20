@@ -4,11 +4,12 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
-import { Plus, Edit2, Trash2, Users, Crown } from 'lucide-react'
+import { Plus, Edit2, Trash2, Users, User, Crown } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useDepartamentos } from '../../../../packages/shared/hooks/useDepartamentos'
 import { useResidentes } from '../../../../packages/shared/hooks/useResidentes'
-import toast, { Toaster } from 'react-hot-toast'
+import { Toaster } from 'react-hot-toast'
+import { showDeleteConfirm, showWarning, showLoading, closeLoading, showError, showSuccess } from '../utils/alerts'
 
 interface ResidenteFormData {
   departamento_id: string
@@ -22,8 +23,8 @@ interface ResidenteFormData {
 
 export function Residentes() {
   const { edificios } = useEdificios()
-  const [selectedEdificio, setSelectedEdificio] = useState<string>('')
-  const [selectedDepartamento, setSelectedDepartamento] = useState<string>('')
+  const [selectedEdificio, setSelectedEdificio] = useState('')
+  const [selectedDepartamento, setSelectedDepartamento] = useState('')
   
   const { departamentos } = useDepartamentos(selectedEdificio)
   const { 
@@ -89,41 +90,104 @@ export function Residentes() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validaciones con SweetAlert2
     if (!formData.departamento_id) {
-      toast.error('Debes seleccionar un departamento')
+      showWarning('Debes seleccionar un departamento')
       return
     }
 
     if (!formData.nombre.trim()) {
-      toast.error('El nombre es obligatorio')
+      showWarning('El nombre del residente es obligatorio')
       return
+    }
+
+    // Validar formato de email si se proporciona
+    if (formData.email && !formData.email.includes('@')) {
+      showWarning('El email no tiene un formato válido')
+      return
+    }
+
+    // Validar RUT chileno básico (opcional)
+    if (formData.rut) {
+      const rutClean = formData.rut.replace(/\./g, '').replace(/-/g, '')
+      if (rutClean.length < 8 || rutClean.length > 9) {
+        showWarning('El RUT no tiene un formato válido. Ejemplo: 12.345.678-9')
+        return
+      }
     }
 
     const dataToSubmit = {
       ...formData,
-      user_id: null, // Por ahora null, más adelante vincularemos con auth
+      user_id: null, // Por ahora null, vincularemos con auth después
+      email: formData.email || null,
+      telefono: formData.telefono || null,
+      rut: formData.rut || null,
     }
 
-    if (editingResidente) {
-      updateResidente(
-        { id: editingResidente.id, ...dataToSubmit },
-        {
-          onSuccess: () => handleCloseModal(),
-        }
-      )
-    } else {
-      createResidente(dataToSubmit, {
-        onSuccess: () => handleCloseModal(),
-      })
+    try {
+      showLoading(editingResidente ? 'Actualizando residente...' : 'Creando residente...')
+
+      if (editingResidente) {
+        updateResidente(
+          { id: editingResidente.id, ...dataToSubmit },
+          {
+            onSuccess: () => {
+              closeLoading()
+              showSuccess('Residente actualizado correctamente')
+              handleCloseModal()
+            },
+            onError: () => {
+              closeLoading()
+              showError('No se pudo actualizar el residente')
+            }
+          }
+        )
+      } else {
+        createResidente(dataToSubmit, {
+          onSuccess: () => {
+            closeLoading()
+            showSuccess('Residente creado correctamente')
+            handleCloseModal()
+          },
+          onError: () => {
+            closeLoading()
+            showError('No se pudo crear el residente')
+          }
+        })
+      }
+    } catch (error) {
+      console.log(error)
+      closeLoading()
+      showError('Ocurrió un error inesperado')
     }
   }
 
-  const handleDelete = (id: string, nombre: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar al residente "${nombre}"?`)) {
-      deleteResidente(id)
+  const handleDelete = async (id: string, nombre: string) => {
+    // Confirmación con SweetAlert2
+    const confirmed = await showDeleteConfirm(nombre)
+    
+    if (!confirmed) return
+
+    try {
+      showLoading('Eliminando residente...')
+      
+      deleteResidente(id, {
+        onSuccess: () => {
+          closeLoading()
+          showSuccess('Residente eliminado correctamente')
+        },
+        onError: () => {
+          closeLoading()
+          showError('No se pudo eliminar el residente')
+        }
+      })
+    } catch (error) {
+      console.log(error)
+      closeLoading()
+      showError('Ocurrió un error inesperado')
     }
   }
 
@@ -165,7 +229,7 @@ export function Residentes() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Edificio
+              Seleccionar Edificio
             </label>
             <select
               value={selectedEdificio}
@@ -176,7 +240,7 @@ export function Residentes() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">-- Selecciona un edificio --</option>
-              {edificios.map((edificio) => (
+              {edificios.map((edificio: any) => (
                 <option key={edificio.id} value={edificio.id}>
                   {edificio.nombre}
                 </option>
@@ -186,16 +250,16 @@ export function Residentes() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Departamento
+              Seleccionar Departamento
             </label>
             <select
               value={selectedDepartamento}
               onChange={(e) => setSelectedDepartamento(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={!selectedEdificio}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
             >
               <option value="">-- Selecciona un departamento --</option>
-              {departamentos.map((depto) => (
+              {departamentos.map((depto: any) => (
                 <option key={depto.id} value={depto.id}>
                   Depto {depto.numero}
                 </option>
@@ -205,10 +269,10 @@ export function Residentes() {
         </div>
       </Card>
 
-      {!selectedDepartamento ? (
+      {!selectedEdificio || !selectedDepartamento ? (
         <Card>
           <p className="text-gray-500 text-center py-8">
-            Selecciona un edificio y departamento para ver los residentes
+            Selecciona un edificio y departamento para ver sus residentes
           </p>
         </Card>
       ) : isLoading ? (
@@ -227,22 +291,22 @@ export function Residentes() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {residentes.map((residente) => (
+          {residentes.map((residente: any) => (
             <Card key={residente.id}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className={`${residente.es_propietario ? 'bg-purple-100' : 'bg-blue-100'} p-3 rounded-lg`}>
                     {residente.es_propietario ? (
-                      <Crown className="text-purple-600" size={24} />
+                      <Crown className={`${residente.es_propietario ? 'text-purple-600' : 'text-blue-600'}`} size={24} />
                     ) : (
-                      <Users className="text-blue-600" size={24} />
+                      <User className="text-blue-600" size={24} />
                     )}
                   </div>
                   <div>
                     <h3 className="font-bold text-lg text-gray-800">
                       {residente.nombre}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className={`text-xs ${residente.es_propietario ? 'text-purple-600' : 'text-blue-600'} font-medium`}>
                       {residente.es_propietario ? 'Propietario' : 'Arrendatario'}
                     </p>
                   </div>
@@ -251,22 +315,24 @@ export function Residentes() {
 
               <div className="space-y-2 mb-4 text-sm">
                 {residente.email && (
-                  <div>
-                    <span className="text-gray-600">Email:</span>
-                    <p className="font-medium">{residente.email}</p>
-                  </div>
+                  <p className="text-gray-600">
+                    <span className="font-medium">📧</span> {residente.email}
+                  </p>
                 )}
                 {residente.telefono && (
-                  <div>
-                    <span className="text-gray-600">Teléfono:</span>
-                    <p className="font-medium">{residente.telefono}</p>
-                  </div>
+                  <p className="text-gray-600">
+                    <span className="font-medium">📱</span> {residente.telefono}
+                  </p>
                 )}
                 {residente.rut && (
-                  <div>
-                    <span className="text-gray-600">RUT:</span>
-                    <p className="font-medium">{residente.rut}</p>
-                  </div>
+                  <p className="text-gray-600">
+                    <span className="font-medium">🆔</span> {residente.rut}
+                  </p>
+                )}
+                {residente.fecha_ingreso && (
+                  <p className="text-gray-600">
+                    <span className="font-medium">📅</span> {new Date(residente.fecha_ingreso).toLocaleDateString()}
+                  </p>
                 )}
               </div>
 
@@ -299,7 +365,7 @@ export function Residentes() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Departamento *
             </label>
             <select
@@ -310,7 +376,7 @@ export function Residentes() {
               disabled={!!editingResidente}
             >
               <option value="">-- Selecciona --</option>
-              {departamentos.map((depto) => (
+              {departamentos.map((depto: any) => (
                 <option key={depto.id} value={depto.id}>
                   Depto {depto.numero}
                 </option>
@@ -366,6 +432,10 @@ export function Residentes() {
             <label htmlFor="es_propietario" className="text-sm font-medium text-gray-700">
               Es propietario
             </label>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+            💡 Los propietarios tienen permisos especiales en el sistema
           </div>
 
           <div className="flex gap-3 pt-4">
