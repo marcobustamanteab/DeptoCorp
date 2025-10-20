@@ -13,6 +13,7 @@ import { Pagos } from './pages/Pagos'
 import { Reservas } from './pages/Reservas'
 import { Reportes } from './pages/Reportes'
 import { ValidarComprobantes } from './pages/ValidarComprobantes'
+import { BuildingLoader } from './components/BuildingLoader'
 
 function App() {
   const { user, loading, signIn, signOut, isAuthenticated } = useAuth()
@@ -32,48 +33,42 @@ function App() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-        <div className="text-white text-2xl">Cargando...</div>
-      </div>
-    )
+    return <BuildingLoader />
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            DeptoCorp
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Sistema de gestión de edificios
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">DeptoCorp</h1>
+            <p className="text-gray-600">Sistema de Gestión de Edificios</p>
+          </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="tu@email.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Contraseña
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="••••••••"
                 required
               />
