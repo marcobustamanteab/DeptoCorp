@@ -9,6 +9,9 @@ interface AvisosPageProps {
   userId: string | undefined
 }
 
+// Definir el tipo de prioridad
+type PrioridadType = 'urgente' | 'alta' | 'normal' | 'baja'
+
 const PRIORIDADES = {
   urgente: { 
     icon: AlertCircle, 
@@ -38,7 +41,7 @@ const PRIORIDADES = {
     border: 'border-gray-200',
     label: '📋 Baja' 
   }
-}
+} as const
 
 export function AvisosPage({ userId }: AvisosPageProps) {
   const { data: profile } = useResidentProfile(userId)
@@ -144,12 +147,19 @@ export function AvisosPage({ userId }: AvisosPageProps) {
           >
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
             
-            {/* Prioridad Badge */}
-            <div className={`inline-flex items-center ${PRIORIDADES[selectedAviso.prioridad].bg} ${PRIORIDADES[selectedAviso.prioridad].border} border px-3 py-1 rounded-full mb-4`}>
-              <span className={`text-xs font-semibold ${PRIORIDADES[selectedAviso.prioridad].color}`}>
-                {PRIORIDADES[selectedAviso.prioridad].label}
-              </span>
-            </div>
+            {/* Prioridad Badge - FIX AQUÍ */}
+            {(() => {
+              const prioridad = (selectedAviso.prioridad || 'normal') as PrioridadType
+              const config = PRIORIDADES[prioridad]
+              
+              return (
+                <div className={`inline-flex items-center ${config.bg} ${config.border} border px-3 py-1 rounded-full mb-4`}>
+                  <span className={`text-xs font-semibold ${config.color}`}>
+                    {config.label}
+                  </span>
+                </div>
+              )
+            })()}
 
             {/* Título */}
             <h3 className="text-2xl font-bold text-gray-800 mb-3">
@@ -194,9 +204,10 @@ export function AvisosPage({ userId }: AvisosPageProps) {
   )
 }
 
-// Componente Card de Aviso
+// Componente Card de Aviso - FIX AQUÍ
 function AvisoCard({ aviso, onClick }: { aviso: any, onClick: () => void }) {
-  const config = PRIORIDADES[aviso.prioridad as keyof typeof PRIORIDADES]
+  const prioridad = (aviso.prioridad || 'normal') as PrioridadType
+  const config = PRIORIDADES[prioridad]
   const Icon = config.icon
 
   return (
