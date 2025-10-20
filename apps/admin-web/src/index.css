@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Estilos para botones de SweetAlert2 */
+.swal-button-confirm {
+  @apply bg-blue-500 hover:bg-blue-600 text-white font-medium px-6 py-2.5 rounded-lg transition-colors inline-flex items-center justify-center min-w-[100px];
+}
+
+.swal-button-danger {
+  @apply bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2.5 rounded-lg transition-colors inline-flex items-center justify-center min-w-[100px];
+}
+
+.swal-button-cancel {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2.5 rounded-lg transition-colors inline-flex items-center justify-center min-w-[100px];
+}
+
+/* Espaciado entre botones */
+.swal2-actions {
+  @apply gap-3;
+}
+
+/* Fix para que los botones siempre sean visibles */
+.swal2-actions button {
+  @apply opacity-100 !important;
+}

@@ -1,11 +1,16 @@
 import Swal from 'sweetalert2'
 
-// Configuración por defecto
+// Configuración por defecto con estilos corregidos
 const defaultConfig = {
   confirmButtonColor: '#3b82f6',
   cancelButtonColor: '#ef4444',
   confirmButtonText: 'Aceptar',
   cancelButtonText: 'Cancelar',
+  customClass: {
+    confirmButton: 'swal-button-confirm',
+    cancelButton: 'swal-button-cancel',
+  },
+  buttonsStyling: false, // Desactivar estilos por defecto
 }
 
 // ✅ Alert de éxito
@@ -14,8 +19,11 @@ export const showSuccess = (message: string, title = '¡Éxito!') => {
     icon: 'success',
     title,
     text: message,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
     confirmButtonText: defaultConfig.confirmButtonText,
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+    },
+    buttonsStyling: false,
   })
 }
 
@@ -25,8 +33,11 @@ export const showError = (message: string, title = 'Error') => {
     icon: 'error',
     title,
     text: message,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
     confirmButtonText: defaultConfig.confirmButtonText,
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+    },
+    buttonsStyling: false,
   })
 }
 
@@ -36,8 +47,11 @@ export const showWarning = (message: string, title = 'Atención') => {
     icon: 'warning',
     title,
     text: message,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
     confirmButtonText: defaultConfig.confirmButtonText,
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+    },
+    buttonsStyling: false,
   })
 }
 
@@ -47,8 +61,11 @@ export const showInfo = (message: string, title = 'Información') => {
     icon: 'info',
     title,
     text: message,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
     confirmButtonText: defaultConfig.confirmButtonText,
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+    },
+    buttonsStyling: false,
   })
 }
 
@@ -64,10 +81,13 @@ export const showConfirm = async (
     title,
     text: message,
     showCancelButton: true,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
-    cancelButtonColor: defaultConfig.cancelButtonColor,
     confirmButtonText: confirmText,
     cancelButtonText: cancelText,
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+      cancelButton: 'swal-button-cancel',
+    },
+    buttonsStyling: false,
   })
   
   return result.isConfirmed
@@ -80,10 +100,13 @@ export const showDeleteConfirm = async (itemName: string) => {
     title: '¿Eliminar?',
     html: `¿Estás seguro de eliminar <strong>${itemName}</strong>?<br><span style="color: #ef4444;">Esta acción no se puede deshacer.</span>`,
     showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
     confirmButtonText: 'Sí, eliminar',
     cancelButtonText: 'Cancelar',
+    customClass: {
+      confirmButton: 'swal-button-danger',
+      cancelButton: 'swal-button-cancel',
+    },
+    buttonsStyling: false,
   })
   
   return result.isConfirmed
@@ -101,10 +124,13 @@ export const showInputText = async (
     inputPlaceholder: placeholder,
     inputValue: defaultValue,
     showCancelButton: true,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
-    cancelButtonColor: defaultConfig.cancelButtonColor,
     confirmButtonText: 'Guardar',
     cancelButtonText: 'Cancelar',
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+      cancelButton: 'swal-button-cancel',
+    },
+    buttonsStyling: false,
     inputValidator: (value) => {
       if (!value) {
         return 'Este campo es requerido'
@@ -121,7 +147,7 @@ export const showInputText = async (
 // 📋 Select / Dropdown
 export const showSelect = async (
   title: string,
-  options: Record<string, string>, // { value: label }
+  options: Record<string, string>,
   defaultValue = ''
 ) => {
   const result = await Swal.fire({
@@ -130,10 +156,13 @@ export const showSelect = async (
     inputOptions: options,
     inputValue: defaultValue,
     showCancelButton: true,
-    confirmButtonColor: defaultConfig.confirmButtonColor,
-    cancelButtonColor: defaultConfig.cancelButtonColor,
     confirmButtonText: 'Seleccionar',
     cancelButtonText: 'Cancelar',
+    customClass: {
+      confirmButton: 'swal-button-confirm',
+      cancelButton: 'swal-button-cancel',
+    },
+    buttonsStyling: false,
     inputValidator: (value) => {
       if (!value) {
         return 'Debes seleccionar una opción'

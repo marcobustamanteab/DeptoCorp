@@ -4,7 +4,7 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
-import { Plus, Calendar, MapPin, Trash2, Clock } from 'lucide-react'
+import { Plus, Calendar, MapPin, Trash2, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useDepartamentos } from '../../../../packages/shared/hooks/useDepartamentos'
 import { useEspaciosComunes } from '../../../../packages/shared/hooks/useEspaciosComunes'
@@ -12,13 +12,14 @@ import { useReservas } from '../../../../packages/shared/hooks/useReservas'
 import toast, { Toaster } from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { showDeleteConfirm } from '../utils/alerts'
 
 export function Reservas() {
   const { edificios } = useEdificios()
   const [selectedEdificio, setSelectedEdificio] = useState<string>('')
   const { departamentos } = useDepartamentos(selectedEdificio)
   const { espacios, createEspacio, deleteEspacio } = useEspaciosComunes(selectedEdificio)
-  const { reservas, isLoading, createReserva, deleteReserva, isCreating } = useReservas(selectedEdificio)
+  const { reservas, isLoading, createReserva, updateReserva, deleteReserva, isCreating } = useReservas(selectedEdificio)
 
   const [showEspacioModal, setShowEspacioModal] = useState(false)
   const [showReservaModal, setShowReservaModal] = useState(false)
@@ -53,11 +54,22 @@ export function Reservas() {
     })
   }
 
+  const handleDeleteEspacio = async (id: string, nombre: string) => {
+    const confirmed = await showDeleteConfirm(nombre)
+    if (!confirmed) return
+    deleteEspacio(id)
+  }
+
   const handleCreateReserva = (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!reservaForm.espacio_id || !reservaForm.departamento_id) {
       toast.error('Debes seleccionar espacio y departamento')
+      return
+    }
+
+    if (!reservaForm.fecha_inicio || !reservaForm.hora_inicio || !reservaForm.fecha_fin || !reservaForm.hora_fin) {
+      toast.error('Debes completar todas las fechas y horas')
       return
     }
 
@@ -69,13 +81,14 @@ export function Reservas() {
       return
     }
 
+    // CORRECCIÓN: El admin crea reservas ya confirmadas
     createReserva({
       edificio_id: selectedEdificio,
       espacio_id: reservaForm.espacio_id,
       departamento_id: reservaForm.departamento_id,
       fecha_inicio: fechaInicio.toISOString(),
       fecha_fin: fechaFin.toISOString(),
-      estado: 'confirmada',
+      estado: 'confirmada', // Admin confirma directamente
       notas: reservaForm.notas,
     }, {
       onSuccess: () => {
@@ -94,11 +107,34 @@ export function Reservas() {
     })
   }
 
-  const handleDeleteReserva = (id: string) => {
-    if (window.confirm('¿Cancelar esta reserva?')) {
-      deleteReserva(id)
-    }
+  const handleAprobarReserva = (id: string) => {
+    updateReserva({ id, estado: 'confirmada' })
   }
+
+  const handleRechazarReserva = async (id: string) => {
+    const confirmed = await showDeleteConfirm('esta reserva')
+    if (!confirmed) return
+    updateReserva({ id, estado: 'cancelada' })
+  }
+
+  const handleDeleteReserva = async (id: string) => {
+    const confirmed = await showDeleteConfirm('esta reserva')
+    if (!confirmed) return
+    deleteReserva(id)
+  }
+
+  const getEstadoBadge = (estado: string) => {
+    const badges = {
+      pendiente: { color: 'bg-yellow-100 text-yellow-800', icon: <AlertCircle size={14} />, label: 'Pendiente' },
+      confirmada: { color: 'bg-green-100 text-green-800', icon: <CheckCircle size={14} />, label: 'Confirmada' },
+      cancelada: { color: 'bg-red-100 text-red-800', icon: <XCircle size={14} />, label: 'Cancelada' },
+    }
+    return badges[estado as keyof typeof badges] || badges.pendiente
+  }
+
+  // Separar reservas por estado
+  const reservasPendientes = reservas?.filter((r: any) => r.estado === 'pendiente') || []
+  const reservasConfirmadas = reservas?.filter((r: any) => r.estado === 'confirmada') || []
 
   if (edificios.length === 0) {
     return (
@@ -124,28 +160,21 @@ export function Reservas() {
       
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Reservas de Espacios Comunes</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button 
+            variant="secondary"
             onClick={() => {
               setEspacioForm({ ...espacioForm, edificio_id: selectedEdificio })
               setShowEspacioModal(true)
             }}
             disabled={!selectedEdificio}
-            variant="secondary"
           >
-            <MapPin size={20} className="inline mr-2" />
-            Gestionar Espacios
+            <Plus size={20} className="inline mr-2" />
+            Nuevo Espacio
           </Button>
           <Button 
             onClick={() => {
-              setReservaForm({ 
-                ...reservaForm, 
-                edificio_id: selectedEdificio,
-                fecha_inicio: new Date().toISOString().split('T')[0],
-                fecha_fin: new Date().toISOString().split('T')[0],
-                hora_inicio: '09:00',
-                hora_fin: '12:00',
-              })
+              setReservaForm({ ...reservaForm, edificio_id: selectedEdificio })
               setShowReservaModal(true)
             }}
             disabled={!selectedEdificio || espacios.length === 0}
@@ -215,11 +244,7 @@ export function Reservas() {
                       )}
                     </div>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`¿Eliminar ${espacio.nombre}?`)) {
-                          deleteEspacio(espacio.id)
-                        }
-                      }}
+                      onClick={() => handleDeleteEspacio(espacio.id, espacio.nombre)}
                       className="text-red-600 hover:text-red-800"
                     >
                       <Trash2 size={16} />
@@ -230,79 +255,114 @@ export function Reservas() {
             </div>
           </Card>
 
-          {/* Lista de Reservas */}
+          {/* Reservas Pendientes de Aprobación */}
+          {reservasPendientes.length > 0 && (
+            <Card className="mb-6 border-yellow-200">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <AlertCircle className="text-yellow-600" size={20} />
+                Reservas Pendientes de Aprobación ({reservasPendientes.length})
+              </h3>
+              <div className="space-y-3">
+                {reservasPendientes.map((reserva: any) => {
+                  const badge = getEstadoBadge(reserva.estado)
+                  return (
+                    <div key={reserva.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin size={16} className="text-gray-600" />
+                            <h4 className="font-medium">{reserva.espacio.nombre}</h4>
+                            <span className={`${badge.color} px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
+                              {badge.icon} {badge.label}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Departamento:</strong> {reserva.departamento.numero}</p>
+                            <p className="flex items-center gap-1">
+                              <Clock size={14} />
+                              {format(new Date(reserva.fecha_inicio), "dd MMM yyyy HH:mm", { locale: es })} - {format(new Date(reserva.fecha_fin), "HH:mm")}
+                            </p>
+                            {reserva.notas && <p><strong>Notas:</strong> {reserva.notas}</p>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            onClick={() => handleAprobarReserva(reserva.id)}
+                          >
+                            <CheckCircle size={16} className="mr-1" />
+                            Aprobar
+                          </Button>
+                          <Button
+                            variant="danger"
+                            onClick={() => handleRechazarReserva(reserva.id)}
+                          >
+                            <XCircle size={16} className="mr-1" />
+                            Rechazar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* Lista de Reservas Confirmadas */}
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-gray-600">Cargando reservas...</div>
             </div>
-          ) : reservas.length === 0 ? (
+          ) : reservasConfirmadas.length === 0 ? (
             <Card>
               <div className="text-center py-12">
                 <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 mb-4">No hay reservas registradas</p>
+                <p className="text-gray-500">No hay reservas confirmadas</p>
               </div>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {reservas.map((reserva) => {
-                const fechaInicio = new Date(reserva.fecha_inicio)
-                const fechaFin = new Date(reserva.fecha_fin)
-                const esPasado = fechaFin < new Date()
-
-                return (
-                  <Card key={reserva.id} className={esPasado ? 'opacity-60' : ''}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="bg-blue-100 p-3 rounded-lg">
-                          <Calendar className="text-blue-600" size={24} />
-                        </div>
+            <Card>
+              <h3 className="font-bold text-lg mb-4">Reservas Confirmadas</h3>
+              <div className="space-y-3">
+                {reservasConfirmadas.map((reserva: any) => {
+                  const badge = getEstadoBadge(reserva.estado)
+                  return (
+                    <div key={reserva.id} className="border rounded-lg p-4 hover:bg-gray-50 transition">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-lg">
-                              {reserva.espacio?.nombre}
-                            </h3>
-                            {esPasado && (
-                              <span className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-full">
-                                Finalizada
-                              </span>
-                            )}
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin size={16} className="text-gray-600" />
+                            <h4 className="font-medium">{reserva.espacio.nombre}</h4>
+                            <span className={`${badge.color} px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
+                              {badge.icon} {badge.label}
+                            </span>
                           </div>
-                          <p className="text-gray-600 mt-1">
-                            Depto {reserva.departamento?.numero}
-                          </p>
-                          <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Calendar size={16} />
-                              <span>{format(fechaInicio, 'dd MMM yyyy', { locale: es })}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock size={16} />
-                              <span>
-                                {format(fechaInicio, 'HH:mm')} - {format(fechaFin, 'HH:mm')}
-                              </span>
-                            </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Departamento:</strong> {reserva.departamento.numero}</p>
+                            <p className="flex items-center gap-1">
+                              <Clock size={14} />
+                              {format(new Date(reserva.fecha_inicio), "dd MMM yyyy HH:mm", { locale: es })} - {format(new Date(reserva.fecha_fin), "HH:mm")}
+                            </p>
+                            {reserva.notas && <p><strong>Notas:</strong> {reserva.notas}</p>}
                           </div>
-                          {reserva.notas && (
-                            <p className="text-sm text-gray-500 mt-2">{reserva.notas}</p>
-                          )}
                         </div>
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteReserva(reserva.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleDeleteReserva(reserva.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
                     </div>
-                  </Card>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            </Card>
           )}
         </>
       )}
 
-      {/* Modal Crear Espacio */}
+      {/* Modal Crear Espacio Común */}
       <Modal
         isOpen={showEspacioModal}
         onClose={() => setShowEspacioModal(false)}
@@ -318,15 +378,15 @@ export function Reservas() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Descripción
             </label>
             <textarea
               value={espacioForm.descripcion}
               onChange={(e) => setEspacioForm({ ...espacioForm, descripcion: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
               placeholder="Descripción del espacio..."
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -335,7 +395,7 @@ export function Reservas() {
             type="number"
             value={espacioForm.capacidad}
             onChange={(e) => setEspacioForm({ ...espacioForm, capacidad: Number(e.target.value) })}
-            min="0"
+            placeholder="10"
           />
 
           <div className="flex gap-3 pt-4">
@@ -348,7 +408,7 @@ export function Reservas() {
               Cancelar
             </Button>
             <Button type="submit" className="flex-1">
-              Crear Espacio
+              Guardar
             </Button>
           </div>
         </form>
@@ -362,8 +422,8 @@ export function Reservas() {
       >
         <form onSubmit={handleCreateReserva} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Espacio *
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Espacio Común *
             </label>
             <select
               value={reservaForm.espacio_id}
@@ -371,7 +431,7 @@ export function Reservas() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="">-- Selecciona --</option>
+              <option value="">-- Selecciona un espacio --</option>
               {espacios.map((espacio) => (
                 <option key={espacio.id} value={espacio.id}>
                   {espacio.nombre}
@@ -381,7 +441,7 @@ export function Reservas() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Departamento *
             </label>
             <select
@@ -390,7 +450,7 @@ export function Reservas() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="">-- Selecciona --</option>
+              <option value="">-- Selecciona un departamento --</option>
               {departamentos.map((depto) => (
                 <option key={depto.id} value={depto.id}>
                   Depto {depto.numero}
@@ -434,15 +494,15 @@ export function Reservas() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Notas
             </label>
             <textarea
               value={reservaForm.notas}
               onChange={(e) => setReservaForm({ ...reservaForm, notas: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Notas adicionales..."
               rows={3}
-              placeholder="Observaciones adicionales..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -460,7 +520,7 @@ export function Reservas() {
               className="flex-1"
               disabled={isCreating}
             >
-              {isCreating ? 'Creando...' : 'Crear Reserva'}
+              {isCreating ? 'Guardando...' : 'Guardar'}
             </Button>
           </div>
         </form>

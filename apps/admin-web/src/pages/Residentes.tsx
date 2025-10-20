@@ -1,195 +1,150 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react'
-import { Card } from '../components/ui/Card'
-import { Button } from '../components/ui/Button'
-import { Modal } from '../components/ui/Modal'
-import { Input } from '../components/ui/Input'
-import { Plus, Edit2, Trash2, Users, User, Crown } from 'lucide-react'
-import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
-import { useDepartamentos } from '../../../../packages/shared/hooks/useDepartamentos'
-import { useResidentes } from '../../../../packages/shared/hooks/useResidentes'
-import { Toaster } from 'react-hot-toast'
-import { showDeleteConfirm, showWarning, showLoading, closeLoading, showError, showSuccess } from '../utils/alerts'
+import { useState } from "react";
+import { Card } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
+import { Input } from "../components/ui/Input";
+import { Plus, Edit2, Trash2, Users, User, Crown } from "lucide-react";
+import { useEdificios } from "../../../../packages/shared/hooks/useEdificios";
+import { useDepartamentos } from "../../../../packages/shared/hooks/useDepartamentos";
+import { useResidentes } from "../../../../packages/shared/hooks/useResidentes";
+import toast, { Toaster } from "react-hot-toast";
+import { showDeleteConfirm } from "../utils/alerts";
 
 interface ResidenteFormData {
-  departamento_id: string
-  nombre: string
-  email: string
-  telefono: string
-  rut: string
-  es_propietario: boolean
-  fecha_ingreso: string
+  departamento_id: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  rut: string;
+  es_propietario: boolean;
+  fecha_ingreso: string;
 }
 
 export function Residentes() {
-  const { edificios } = useEdificios()
-  const [selectedEdificio, setSelectedEdificio] = useState('')
-  const [selectedDepartamento, setSelectedDepartamento] = useState('')
-  
-  const { departamentos } = useDepartamentos(selectedEdificio)
-  const { 
-    residentes, 
-    isLoading, 
-    createResidente, 
-    updateResidente, 
+  const { edificios } = useEdificios();
+  const [selectedEdificio, setSelectedEdificio] = useState("");
+  const [selectedDepartamento, setSelectedDepartamento] = useState("");
+
+  const { departamentos } = useDepartamentos(selectedEdificio);
+  const {
+    residentes,
+    isLoading,
+    createResidente,
+    updateResidente,
     deleteResidente,
     isCreating,
     isUpdating,
-  } = useResidentes(selectedDepartamento)
+  } = useResidentes(selectedDepartamento);
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingResidente, setEditingResidente] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingResidente, setEditingResidente] = useState<any>(null);
   const [formData, setFormData] = useState<ResidenteFormData>({
-    departamento_id: '',
-    nombre: '',
-    email: '',
-    telefono: '',
-    rut: '',
+    departamento_id: "",
+    nombre: "",
+    email: "",
+    telefono: "",
+    rut: "",
     es_propietario: false,
-    fecha_ingreso: new Date().toISOString().split('T')[0],
-  })
+    fecha_ingreso: new Date().toISOString().split("T")[0],
+  });
 
   const handleOpenModal = (residente?: any) => {
     if (residente) {
-      setEditingResidente(residente)
+      setEditingResidente(residente);
       setFormData({
         departamento_id: residente.departamento_id,
         nombre: residente.nombre,
-        email: residente.email || '',
-        telefono: residente.telefono || '',
-        rut: residente.rut || '',
+        email: residente.email || "",
+        telefono: residente.telefono || "",
+        rut: residente.rut || "",
         es_propietario: residente.es_propietario || false,
-        fecha_ingreso: residente.fecha_ingreso || new Date().toISOString().split('T')[0],
-      })
+        fecha_ingreso:
+          residente.fecha_ingreso || new Date().toISOString().split("T")[0],
+      });
     } else {
-      setEditingResidente(null)
+      setEditingResidente(null);
       setFormData({
-        departamento_id: selectedDepartamento || '',
-        nombre: '',
-        email: '',
-        telefono: '',
-        rut: '',
+        departamento_id: selectedDepartamento || "",
+        nombre: "",
+        email: "",
+        telefono: "",
+        rut: "",
         es_propietario: false,
-        fecha_ingreso: new Date().toISOString().split('T')[0],
-      })
+        fecha_ingreso: new Date().toISOString().split("T")[0],
+      });
     }
-    setIsModalOpen(true)
-  }
+    setIsModalOpen(true);
+  };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setEditingResidente(null)
+    setIsModalOpen(false);
+    setEditingResidente(null);
     setFormData({
-      departamento_id: '',
-      nombre: '',
-      email: '',
-      telefono: '',
-      rut: '',
+      departamento_id: "",
+      nombre: "",
+      email: "",
+      telefono: "",
+      rut: "",
       es_propietario: false,
-      fecha_ingreso: new Date().toISOString().split('T')[0],
-    })
-  }
+      fecha_ingreso: new Date().toISOString().split("T")[0],
+    });
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // Validaciones con SweetAlert2
     if (!formData.departamento_id) {
-      showWarning('Debes seleccionar un departamento')
-      return
+      toast.error("Debes seleccionar un departamento");
+      return;
     }
 
     if (!formData.nombre.trim()) {
-      showWarning('El nombre del residente es obligatorio')
-      return
+      toast.error("El nombre del residente es obligatorio");
+      return;
     }
 
-    // Validar formato de email si se proporciona
-    if (formData.email && !formData.email.includes('@')) {
-      showWarning('El email no tiene un formato válido')
-      return
+    if (formData.email && !formData.email.includes("@")) {
+      toast.error("El email no tiene un formato válido");
+      return;
     }
 
-    // Validar RUT chileno básico (opcional)
     if (formData.rut) {
-      const rutClean = formData.rut.replace(/\./g, '').replace(/-/g, '')
+      const rutClean = formData.rut.replace(/\./g, "").replace(/-/g, "");
       if (rutClean.length < 8 || rutClean.length > 9) {
-        showWarning('El RUT no tiene un formato válido. Ejemplo: 12.345.678-9')
-        return
+        toast.error("El RUT no tiene un formato válido. Ejemplo: 12.345.678-9");
+        return;
       }
     }
 
     const dataToSubmit = {
       ...formData,
-      user_id: null, // Por ahora null, vincularemos con auth después
+      user_id: null,
       email: formData.email || null,
       telefono: formData.telefono || null,
       rut: formData.rut || null,
-    }
+    };
 
-    try {
-      showLoading(editingResidente ? 'Actualizando residente...' : 'Creando residente...')
-
-      if (editingResidente) {
-        updateResidente(
-          { id: editingResidente.id, ...dataToSubmit },
-          {
-            onSuccess: () => {
-              closeLoading()
-              showSuccess('Residente actualizado correctamente')
-              handleCloseModal()
-            },
-            onError: () => {
-              closeLoading()
-              showError('No se pudo actualizar el residente')
-            }
-          }
-        )
-      } else {
-        createResidente(dataToSubmit, {
-          onSuccess: () => {
-            closeLoading()
-            showSuccess('Residente creado correctamente')
-            handleCloseModal()
-          },
-          onError: () => {
-            closeLoading()
-            showError('No se pudo crear el residente')
-          }
-        })
-      }
-    } catch (error) {
-      console.log(error)
-      closeLoading()
-      showError('Ocurrió un error inesperado')
+    if (editingResidente) {
+      updateResidente(
+        { id: editingResidente.id, ...dataToSubmit },
+        {
+          onSuccess: () => handleCloseModal(),
+        }
+      );
+    } else {
+      createResidente(dataToSubmit, {
+        onSuccess: () => handleCloseModal(),
+      });
     }
-  }
+  };
 
   const handleDelete = async (id: string, nombre: string) => {
-    // Confirmación con SweetAlert2
-    const confirmed = await showDeleteConfirm(nombre)
-    
-    if (!confirmed) return
+    const confirmed = await showDeleteConfirm(nombre);
+    if (!confirmed) return;
 
-    try {
-      showLoading('Eliminando residente...')
-      
-      deleteResidente(id, {
-        onSuccess: () => {
-          closeLoading()
-          showSuccess('Residente eliminado correctamente')
-        },
-        onError: () => {
-          closeLoading()
-          showError('No se pudo eliminar el residente')
-        }
-      })
-    } catch (error) {
-      console.log(error)
-      closeLoading()
-      showError('Ocurrió un error inesperado')
-    }
-  }
+    deleteResidente(id);
+  };
 
   if (edificios.length === 0) {
     return (
@@ -199,23 +154,25 @@ export function Residentes() {
         <Card>
           <div className="text-center py-12">
             <Users size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500 mb-4">Primero debes crear un edificio</p>
-            <Button onClick={() => window.location.href = '/edificios'}>
+            <p className="text-gray-500 mb-4">
+              Primero debes crear un edificio
+            </p>
+            <Button onClick={() => (window.location.href = "/edificios")}>
               Ir a Edificios
             </Button>
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div>
       <Toaster position="top-right" />
-      
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Residentes</h1>
-        <Button 
+        <Button
           onClick={() => handleOpenModal()}
           disabled={!selectedDepartamento}
         >
@@ -234,8 +191,8 @@ export function Residentes() {
             <select
               value={selectedEdificio}
               onChange={(e) => {
-                setSelectedEdificio(e.target.value)
-                setSelectedDepartamento('')
+                setSelectedEdificio(e.target.value);
+                setSelectedDepartamento("");
               }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
@@ -283,7 +240,9 @@ export function Residentes() {
         <Card>
           <div className="text-center py-12">
             <Users size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500 mb-4">No hay residentes en este departamento</p>
+            <p className="text-gray-500 mb-4">
+              No hay residentes en este departamento
+            </p>
             <Button onClick={() => handleOpenModal()}>
               Agregar primer residente
             </Button>
@@ -295,9 +254,20 @@ export function Residentes() {
             <Card key={residente.id}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`${residente.es_propietario ? 'bg-purple-100' : 'bg-blue-100'} p-3 rounded-lg`}>
+                  <div
+                    className={`${
+                      residente.es_propietario ? "bg-purple-100" : "bg-blue-100"
+                    } p-3 rounded-lg`}
+                  >
                     {residente.es_propietario ? (
-                      <Crown className={`${residente.es_propietario ? 'text-purple-600' : 'text-blue-600'}`} size={24} />
+                      <Crown
+                        className={`${
+                          residente.es_propietario
+                            ? "text-purple-600"
+                            : "text-blue-600"
+                        }`}
+                        size={24}
+                      />
                     ) : (
                       <User className="text-blue-600" size={24} />
                     )}
@@ -306,8 +276,16 @@ export function Residentes() {
                     <h3 className="font-bold text-lg text-gray-800">
                       {residente.nombre}
                     </h3>
-                    <p className={`text-xs ${residente.es_propietario ? 'text-purple-600' : 'text-blue-600'} font-medium`}>
-                      {residente.es_propietario ? 'Propietario' : 'Arrendatario'}
+                    <p
+                      className={`text-xs ${
+                        residente.es_propietario
+                          ? "text-purple-600"
+                          : "text-blue-600"
+                      } font-medium`}
+                    >
+                      {residente.es_propietario
+                        ? "Propietario"
+                        : "Arrendatario"}
                     </p>
                   </div>
                 </div>
@@ -331,7 +309,8 @@ export function Residentes() {
                 )}
                 {residente.fecha_ingreso && (
                   <p className="text-gray-600">
-                    <span className="font-medium">📅</span> {new Date(residente.fecha_ingreso).toLocaleDateString()}
+                    <span className="font-medium">📅</span>{" "}
+                    {new Date(residente.fecha_ingreso).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -361,7 +340,7 @@ export function Residentes() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingResidente ? 'Editar Residente' : 'Nuevo Residente'}
+        title={editingResidente ? "Editar Residente" : "Nuevo Residente"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -370,7 +349,9 @@ export function Residentes() {
             </label>
             <select
               value={formData.departamento_id}
-              onChange={(e) => setFormData({ ...formData, departamento_id: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, departamento_id: e.target.value })
+              }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
               disabled={!!editingResidente}
@@ -387,7 +368,9 @@ export function Residentes() {
           <Input
             label="Nombre Completo *"
             value={formData.nombre}
-            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, nombre: e.target.value })
+            }
             placeholder="Ej: Juan Pérez"
             required
           />
@@ -396,14 +379,18 @@ export function Residentes() {
             label="Email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
             placeholder="juan@email.com"
           />
 
           <Input
             label="Teléfono"
             value={formData.telefono}
-            onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, telefono: e.target.value })
+            }
             placeholder="+56 9 1234 5678"
           />
 
@@ -418,7 +405,9 @@ export function Residentes() {
             label="Fecha de Ingreso"
             type="date"
             value={formData.fecha_ingreso}
-            onChange={(e) => setFormData({ ...formData, fecha_ingreso: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, fecha_ingreso: e.target.value })
+            }
           />
 
           <div className="flex items-center gap-2">
@@ -426,10 +415,15 @@ export function Residentes() {
               type="checkbox"
               id="es_propietario"
               checked={formData.es_propietario}
-              onChange={(e) => setFormData({ ...formData, es_propietario: e.target.checked })}
+              onChange={(e) =>
+                setFormData({ ...formData, es_propietario: e.target.checked })
+              }
               className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
             />
-            <label htmlFor="es_propietario" className="text-sm font-medium text-gray-700">
+            <label
+              htmlFor="es_propietario"
+              className="text-sm font-medium text-gray-700"
+            >
               Es propietario
             </label>
           </div>
@@ -452,11 +446,11 @@ export function Residentes() {
               className="flex-1"
               disabled={isCreating || isUpdating}
             >
-              {isCreating || isUpdating ? 'Guardando...' : 'Guardar'}
+              {isCreating || isUpdating ? "Guardando..." : "Guardar"}
             </Button>
           </div>
         </form>
       </Modal>
     </div>
-  )
+  );
 }

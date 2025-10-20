@@ -7,8 +7,8 @@ import { Input } from '../components/ui/Input'
 import { Plus, Edit2, Trash2, Home } from 'lucide-react'
 import { useEdificios } from '../../../../packages/shared/hooks/useEdificios'
 import { useDepartamentos } from '../../../../packages/shared/hooks/useDepartamentos'
-import { Toaster } from 'react-hot-toast'
-import { showDeleteConfirm, showWarning, showLoading, closeLoading, showError, showSuccess } from '../utils/alerts'
+import toast, { Toaster } from 'react-hot-toast'
+import { showDeleteConfirm } from '../utils/alerts'
 
 interface DepartamentoFormData {
   edificio_id: string
@@ -77,28 +77,25 @@ export function Departamentos() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validaciones con SweetAlert2
     if (!formData.edificio_id) {
-      showWarning('Debes seleccionar un edificio')
+      toast.error('Debes seleccionar un edificio')
       return
     }
 
     if (!formData.numero.trim()) {
-      showWarning('El número de departamento es obligatorio')
+      toast.error('El número de departamento es obligatorio')
       return
     }
 
-    // Validar porcentaje de gastos
     if (formData.porcentaje_gastos !== '' && 
         (Number(formData.porcentaje_gastos) < 0 || Number(formData.porcentaje_gastos) > 100)) {
-      showWarning('El porcentaje de gastos debe estar entre 0 y 100')
+      toast.error('El porcentaje de gastos debe estar entre 0 y 100')
       return
     }
 
-    // Preparar datos
     const dataToSubmit = {
       edificio_id: formData.edificio_id,
       numero: formData.numero,
@@ -107,68 +104,25 @@ export function Departamentos() {
       porcentaje_gastos: formData.porcentaje_gastos === '' ? 0 : Number(formData.porcentaje_gastos),
     }
 
-    try {
-      showLoading(editingDepartamento ? 'Actualizando departamento...' : 'Creando departamento...')
-
-      if (editingDepartamento) {
-        updateDepartamento(
-          { id: editingDepartamento.id, ...dataToSubmit },
-          {
-            onSuccess: () => {
-              closeLoading()
-              showSuccess('Departamento actualizado correctamente')
-              handleCloseModal()
-            },
-            onError: () => {
-              closeLoading()
-              showError('No se pudo actualizar el departamento')
-            }
-          }
-        )
-      } else {
-        createDepartamento(dataToSubmit, {
-          onSuccess: () => {
-            closeLoading()
-            showSuccess('Departamento creado correctamente')
-            handleCloseModal()
-          },
-          onError: () => {
-            closeLoading()
-            showError('No se pudo crear el departamento. Verifica que el número no esté duplicado.')
-          }
-        })
-      }
-    } catch (error) {
-      console.log(error)
-      closeLoading()
-      showError('Ocurrió un error inesperado')
+    if (editingDepartamento) {
+      updateDepartamento(
+        { id: editingDepartamento.id, ...dataToSubmit },
+        {
+          onSuccess: () => handleCloseModal(),
+        }
+      )
+    } else {
+      createDepartamento(dataToSubmit, {
+        onSuccess: () => handleCloseModal(),
+      })
     }
   }
 
   const handleDelete = async (id: string, numero: string) => {
-    // Confirmación con SweetAlert2
     const confirmed = await showDeleteConfirm(`Departamento ${numero}`)
-    
     if (!confirmed) return
-
-    try {
-      showLoading('Eliminando departamento...')
-      
-      deleteDepartamento(id, {
-        onSuccess: () => {
-          closeLoading()
-          showSuccess('Departamento eliminado correctamente')
-        },
-        onError: () => {
-          closeLoading()
-          showError('No se pudo eliminar el departamento. Puede tener residentes o gastos asociados.')
-        }
-      })
-    } catch (error) {
-      console.log(error)
-      closeLoading()
-      showError('Ocurrió un error inesperado')
-    }
+    
+    deleteDepartamento(id)
   }
 
   if (edificios.length === 0) {

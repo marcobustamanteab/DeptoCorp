@@ -106,7 +106,7 @@ export function useCreateReserva() {
         .from('reservas')
         .insert({
           ...reserva,
-          estado: 'confirmada'
+          estado: 'pendiente'
         })
         .select()
         .single()
