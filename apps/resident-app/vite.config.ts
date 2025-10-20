@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'icons/*.png'],
+      includeAssets: ['favicon.ico', 'robots.txt'],
       
       // Configuración del manifest
       manifest: {
@@ -25,15 +25,15 @@ export default defineConfig({
         categories: ['lifestyle', 'utilities'],
         icons: [
           {
-            src: '/icons/icon-192x192.png',
+            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" fill="%233b82f6" rx="40"/><text x="96" y="130" font-size="100" text-anchor="middle" fill="white">🏢</text></svg>',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/icons/icon-512x512.png',
+            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="%233b82f6" rx="100"/><text x="256" y="360" font-size="280" text-anchor="middle" fill="white">🏢</text></svg>',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           }
         ]
@@ -112,7 +112,7 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Eliminar console.log en producción
+        drop_console: true,
         drop_debugger: true
       }
     },
