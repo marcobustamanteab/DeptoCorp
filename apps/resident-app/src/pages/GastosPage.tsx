@@ -1,11 +1,11 @@
 // ==========================================
 // apps/resident-app/src/pages/GastosPage.tsx
-// CON SUBIDA DE COMPROBANTES
+// CON LÓGICA CORRECTA DE COMPROBANTES
 // ==========================================
 import { useResidentProfile } from '@deptocorp/shared/hooks/useResidentProfile'
 import { useResidentGastos } from '@deptocorp/shared/hooks/useResidentGastos'
 import { useSubirComprobante, useComprobantesGasto } from '@deptocorp/shared/hooks/useComprobantes'
-import { DollarSign, Calendar, CheckCircle, Clock, AlertCircle, ChevronRight, Upload, Camera, FileText } from 'lucide-react'
+import { DollarSign, Calendar, CheckCircle, Clock, AlertCircle, ChevronRight, Upload, Camera, FileText, XCircle } from 'lucide-react'
 import { useState, useRef } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -88,50 +88,14 @@ export function GastosPage({ userId }: GastosPageProps) {
             const Icon = estadoConfig.icon
 
             return (
-              <div key={gasto.id} className="bg-white rounded-2xl shadow-sm p-4">
-                <button
-                  onClick={() => setSelectedGasto(gasto)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center">
-                      <div className={`${estadoConfig.bg} p-2 rounded-xl mr-3`}>
-                        <Icon className={estadoConfig.color} size={20} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-800">
-                          {MESES[gasto.mes - 1]} {gasto.anio}
-                        </h3>
-                        <p className={`text-xs ${estadoConfig.color} font-medium`}>
-                          {estadoConfig.label}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="text-gray-400" size={20} />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-gray-500 text-xs">
-                      <Calendar size={14} className="mr-1" />
-                      Vence: {format(new Date(gasto.fecha_vencimiento), 'dd MMM', { locale: es })}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-800">
-                        ${gasto.monto.toLocaleString('es-CL')}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Botón Subir Comprobante */}
-                <button
-                  onClick={() => handleSubirComprobante(gasto)}
-                  className="w-full mt-3 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-95 transition"
-                >
-                  <Upload size={20} />
-                  Subir Comprobante
-                </button>
-              </div>
+              <GastoCard 
+                key={gasto.id} 
+                gasto={gasto}
+                estadoConfig={estadoConfig}
+                Icon={Icon}
+                onVerDetalle={() => setSelectedGasto(gasto)}
+                onSubirComprobante={() => handleSubirComprobante(gasto)}
+              />
             )
           })}
         </div>
@@ -199,9 +163,109 @@ export function GastosPage({ userId }: GastosPageProps) {
   )
 }
 
-// Modal Detalle del Gasto
+// ============================================
+// COMPONENTE: Card de Gasto con lógica de comprobantes
+// ============================================
+function GastoCard({ gasto, estadoConfig, Icon, onVerDetalle, onSubirComprobante }: any) {
+  const { data: comprobantes } = useComprobantesGasto(gasto.id)
+  
+  // Verificar estado del último comprobante
+  const ultimoComprobante = comprobantes?.[0]
+  const tieneComprobantePendiente = ultimoComprobante?.estado === 'pendiente'
+  const comprobanteRechazado = ultimoComprobante?.estado === 'rechazado'
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-4">
+      <button
+        onClick={onVerDetalle}
+        className="w-full text-left"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <div className={`${estadoConfig.bg} p-2 rounded-xl mr-3`}>
+              <Icon className={estadoConfig.color} size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">
+                {MESES[gasto.mes - 1]} {gasto.anio}
+              </h3>
+              <p className={`text-xs ${estadoConfig.color} font-medium`}>
+                {estadoConfig.label}
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="text-gray-400" size={20} />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-gray-500 text-xs">
+            <Calendar size={14} className="mr-1" />
+            Vence: {format(new Date(gasto.fecha_vencimiento), 'dd MMM', { locale: es })}
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-gray-800">
+              ${gasto.monto.toLocaleString('es-CL')}
+            </p>
+          </div>
+        </div>
+      </button>
+
+      {/* LÓGICA CORREGIDA: Mostrar botón o mensaje según estado del comprobante */}
+      {tieneComprobantePendiente ? (
+        // Ya tiene comprobante pendiente - Mostrar mensaje
+        <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-2">
+          <Clock size={18} className="text-yellow-600 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-yellow-800">En revisión</p>
+            <p className="text-xs text-yellow-600">Tu comprobante está siendo validado</p>
+          </div>
+        </div>
+      ) : comprobanteRechazado ? (
+        // Comprobante rechazado - Puede subir uno nuevo
+        <div className="mt-3 space-y-2">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+            <XCircle size={18} className="text-red-600 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-red-800">Comprobante rechazado</p>
+              <p className="text-xs text-red-600">Por favor, sube un nuevo comprobante</p>
+            </div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onSubirComprobante()
+            }}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-95 transition"
+          >
+            <Upload size={20} />
+            Subir Nuevo Comprobante
+          </button>
+        </div>
+      ) : gasto.estado === 'pendiente' || gasto.estado === 'atrasado' ? (
+        // No tiene comprobante - Mostrar botón para subir
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onSubirComprobante()
+          }}
+          className="w-full mt-3 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-95 transition"
+        >
+          <Upload size={20} />
+          Subir Comprobante
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+// ============================================
+// MODAL: Detalle del Gasto
+// ============================================
 function ModalDetalle({ gasto, onClose, onSubirComprobante }: any) {
   const { data: comprobantes } = useComprobantesGasto(gasto.id)
+  const ultimoComprobante = comprobantes?.[0]
+  const tieneComprobantePendiente = ultimoComprobante?.estado === 'pendiente'
+  const comprobanteRechazado = ultimoComprobante?.estado === 'rechazado'
 
   return (
     <div 
@@ -282,15 +346,41 @@ function ModalDetalle({ gasto, onClose, onSubirComprobante }: any) {
             </div>
           )}
 
-          {gasto.estado === 'pendiente' && (
+          {/* LÓGICA CORREGIDA: Botón condicional */}
+          {tieneComprobantePendiente ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-2">
+              <Clock size={20} className="text-yellow-600" />
+              <div>
+                <p className="text-sm font-semibold text-yellow-800">Comprobante en revisión</p>
+                <p className="text-xs text-yellow-600">Recibirás una notificación cuando sea validado</p>
+              </div>
+            </div>
+          ) : comprobanteRechazado ? (
+            <>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-2">
+                <XCircle size={20} className="text-red-600" />
+                <div>
+                  <p className="text-sm font-semibold text-red-800">Comprobante rechazado</p>
+                  <p className="text-xs text-red-600">Por favor, sube un nuevo comprobante válido</p>
+                </div>
+              </div>
+              <button 
+                onClick={onSubirComprobante}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-semibold active:scale-95 transition flex items-center justify-center gap-2"
+              >
+                <Upload size={20} />
+                Subir Nuevo Comprobante
+              </button>
+            </>
+          ) : (gasto.estado === 'pendiente' || gasto.estado === 'atrasado') ? (
             <button 
               onClick={onSubirComprobante}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-semibold mt-4 active:scale-95 transition flex items-center justify-center gap-2"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-semibold active:scale-95 transition flex items-center justify-center gap-2"
             >
               <Upload size={20} />
               Subir Comprobante
             </button>
-          )}
+          ) : null}
 
           <button 
             onClick={onClose}
@@ -304,7 +394,9 @@ function ModalDetalle({ gasto, onClose, onSubirComprobante }: any) {
   )
 }
 
-// Modal Subir Comprobante
+// ============================================
+// MODAL: Subir Comprobante
+// ============================================
 function ModalSubirComprobante({ gasto, onClose }: any) {
   const [archivo, setArchivo] = useState<File | null>(null)
   const [previsualizacion, setPrevisualizacion] = useState<string | null>(null)
@@ -317,32 +409,37 @@ function ModalSubirComprobante({ gasto, onClose }: any) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      // Validar tamaño (máx 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('El archivo no debe superar 5MB')
-        return
-      }
+    if (!file) return
 
-      // Validar tipo
-      if (!file.type.startsWith('image/')) {
-        alert('Solo se permiten imágenes')
-        return
-      }
+    // Validar tamaño (máx 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('El archivo no debe superar 5MB')
+      return
+    }
 
-      setArchivo(file)
-      
-      // Crear previsualización
+    // Validar tipo
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert('Solo se permiten imágenes o PDF')
+      return
+    }
+
+    setArchivo(file)
+
+    // Previsualización solo para imágenes
+    if (file.type.startsWith('image/')) {
       const reader = new FileReader()
       reader.onloadend = () => {
         setPrevisualizacion(reader.result as string)
       }
       reader.readAsDataURL(file)
+    } else {
+      setPrevisualizacion(null)
     }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
     if (!archivo) {
       alert('Debes seleccionar un archivo')
       return
@@ -353,9 +450,11 @@ function ModalSubirComprobante({ gasto, onClose }: any) {
       archivo,
       metodo_pago: metodoPago,
       referencia_externa: referencia || undefined,
-      notas: notas || undefined
+      notas: notas || undefined,
     }, {
-      onSuccess: () => onClose()
+      onSuccess: () => {
+        onClose()
+      }
     })
   }
 
@@ -368,54 +467,54 @@ function ModalSubirComprobante({ gasto, onClose }: any) {
         className="bg-white rounded-t-3xl p-6 w-full max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
-
-        <h3 className="text-2xl font-bold text-gray-800 mb-2">Subir Comprobante</h3>
-        <p className="text-gray-600 mb-6">
-          {MESES[gasto.mes - 1]} {gasto.anio} • ${gasto.monto.toLocaleString('es-CL')}
+        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+        
+        <h3 className="text-xl font-bold text-gray-800 mb-1">
+          Subir Comprobante
+        </h3>
+        <p className="text-sm text-gray-600 mb-6">
+          {MESES[gasto.mes - 1]} {gasto.anio} - ${gasto.monto.toLocaleString('es-CL')}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Seleccionar Archivo */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Selector de Archivo */}
           <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Comprobante *
+            </label>
             <input
               ref={inputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               onChange={handleFileChange}
               className="hidden"
             />
-            
-            {previsualizacion ? (
-              <div className="relative">
-                <img 
-                  src={previsualizacion} 
-                  alt="Preview" 
-                  className="w-full h-48 object-cover rounded-xl"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setArchivo(null)
-                    setPrevisualizacion(null)
-                  }}
-                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full"
-                >
-                  ✕
-                </button>
-              </div>
+            {!archivo ? (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-blue-500 hover:bg-blue-50 transition"
+              >
+                <Camera className="mx-auto text-gray-400 mb-2" size={40} />
+                <p className="text-sm font-medium text-gray-600">Toca para seleccionar archivo</p>
+                <p className="text-xs text-gray-400 mt-1">JPG, PNG o PDF - Máx 5MB</p>
+              </button>
             ) : (
-              <div className="space-y-3">
+              <div className="relative border-2 border-blue-500 rounded-xl p-4 bg-blue-50">
+                {previsualizacion ? (
+                  <img src={previsualizacion} alt="Preview" className="w-full h-48 object-contain rounded-lg" />
+                ) : (
+                  <div className="flex items-center justify-center h-48">
+                    <FileText className="text-blue-500" size={48} />
+                  </div>
+                )}
+                <p className="text-sm text-gray-700 mt-2 text-center font-medium">{archivo.name}</p>
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="w-full bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-8 flex flex-col items-center justify-center gap-3 hover:bg-blue-100 transition"
+                  className="w-full mt-2 text-blue-600 text-sm font-medium"
                 >
-                  <Camera size={40} className="text-blue-500" />
-                  <div className="text-center">
-                    <p className="font-semibold text-blue-700">Seleccionar imagen</p>
-                    <p className="text-xs text-blue-600 mt-1">Máx. 5MB</p>
-                  </div>
+                  Cambiar archivo
                 </button>
               </div>
             )}
@@ -479,16 +578,27 @@ function ModalSubirComprobante({ gasto, onClose }: any) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold"
+              disabled={isPending}
+              className="flex-1 bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending || !archivo}
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isPending ? 'Subiendo...' : 'Subir'}
+              {isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Subiendo...
+                </>
+              ) : (
+                <>
+                  <Upload size={20} />
+                  Subir
+                </>
+              )}
             </button>
           </div>
         </form>

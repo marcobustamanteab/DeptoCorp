@@ -1,55 +1,48 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@deptocorp/supabase-client'
 import toast from 'react-hot-toast'
 
-interface SubirComprobanteParams {
-  gastoDeptoId: string
-  archivo: File
-  metodo_pago: string
-  referencia_externa?: string
-  notas?: string
-}
-
+// Hook para subir comprobante
 export function useSubirComprobante() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ gastoDeptoId, archivo, metodo_pago, referencia_externa, notas }: SubirComprobanteParams) => {
-      // 1. Obtener info del gasto para generar nombre único
+    mutationFn: async ({
+      gastoDeptoId,
+      archivo,
+      metodo_pago,
+      referencia_externa,
+      notas
+    }: {
+      gastoDeptoId: string
+      archivo: File
+      metodo_pago: string
+      referencia_externa?: string
+      notas?: string
+    }) => {
+      // 1. Obtener info del gasto departamento
       const { data: gastoDepto, error: gastoError } = await supabase
         .from('gastos_departamento')
-        .select(`
-          monto,
-          departamento:departamentos(numero),
-          gasto_comun:gastos_comunes(mes, anio)
-        `)
+        .select('monto')
         .eq('id', gastoDeptoId)
         .single()
 
       if (gastoError) throw new Error('Error al obtener información del gasto')
-      if (!gastoDepto.departamento || !gastoDepto.gasto_comun) {
-        throw new Error('Información del gasto incompleta')
-      }
 
       // 2. Generar nombre único para el archivo
-      const depto = gastoDepto.departamento.numero
-      const mes = gastoDepto.gasto_comun.mes
-      const anio = gastoDepto.gasto_comun.anio
       const timestamp = Date.now()
       const extension = archivo.name.split('.').pop()
-      const nombreArchivo = `comprobante_depto${depto}_${mes}-${anio}_${timestamp}.${extension}`
+      const nombreArchivo = `${gastoDeptoId}_${timestamp}.${extension}`
 
       // 3. Subir archivo a Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('comprobantes')
         .upload(nombreArchivo, archivo, {
           cacheControl: '3600',
-          upsert: false,
-          contentType: archivo.type
+          upsert: false
         })
 
       if (uploadError) {
-        console.error('Upload error:', uploadError)
         throw new Error('Error al subir el archivo: ' + uploadError.message)
       }
 
@@ -79,10 +72,14 @@ export function useSubirComprobante() {
         throw new Error('Error al registrar el pago: ' + pagoError.message)
       }
 
-      return { pago: pagoData, url: urlData.publicUrl }
+      return { pago: pagoData, url: urlData.publicUrl, gastoDeptoId }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // CORRECCIÓN: Invalidar múltiples queries para que se actualice la UI
       queryClient.invalidateQueries({ queryKey: ['residentGastos'] })
+      queryClient.invalidateQueries({ queryKey: ['comprobantes', data.gastoDeptoId] })
+      queryClient.invalidateQueries({ queryKey: ['comprobantes'] }) // Query genérica
+      
       toast.success('Comprobante subido exitosamente. Pendiente de confirmación.')
     },
     onError: (error: Error) => {
@@ -107,8 +104,8 @@ export function useComprobantesGasto(gastoDeptoId: string | undefined) {
       if (error) throw error
       return data
     },
-    enabled: !!gastoDeptoId
+    enabled: !!gastoDeptoId,
+    // IMPORTANTE: Refrescar cada 3 segundos mientras esté activo
+    refetchInterval: 3000,
   })
 }
-
-import { useQuery } from '@tanstack/react-query'
