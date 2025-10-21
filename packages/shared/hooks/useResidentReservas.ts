@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@deptocorp/supabase-client'
 import toast from 'react-hot-toast'
-import { useEffect } from 'react'
 import { verificarDisponibilidadEspacio, formatearMensajeConflicto } from '../utils/reservasValidation'
 
 interface EspacioComun {
