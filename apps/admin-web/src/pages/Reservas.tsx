@@ -13,6 +13,8 @@ import toast, { Toaster } from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { showDeleteConfirm } from '../utils/alerts'
+import { supabase } from '@deptocorp/supabase-client'
+import { useQuery } from '@tanstack/react-query'
 
 export function Reservas() {
   const { edificios } = useEdificios()
@@ -81,14 +83,13 @@ export function Reservas() {
       return
     }
 
-    // CORRECCIÓN: El admin crea reservas ya confirmadas
     createReserva({
       edificio_id: selectedEdificio,
       espacio_id: reservaForm.espacio_id,
       departamento_id: reservaForm.departamento_id,
       fecha_inicio: fechaInicio.toISOString(),
       fecha_fin: fechaFin.toISOString(),
-      estado: 'confirmada', // Admin confirma directamente
+      estado: 'confirmada',
       notas: reservaForm.notas,
     }, {
       onSuccess: () => {
@@ -132,7 +133,6 @@ export function Reservas() {
     return badges[estado as keyof typeof badges] || badges.pendiente
   }
 
-  // Separar reservas por estado
   const reservasPendientes = reservas?.filter((r: any) => r.estado === 'pendiente') || []
   const reservasConfirmadas = reservas?.filter((r: any) => r.estado === 'confirmada') || []
 
@@ -185,7 +185,6 @@ export function Reservas() {
         </div>
       </div>
 
-      {/* Selector de Edificio */}
       <Card className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Seleccionar Edificio
@@ -225,7 +224,6 @@ export function Reservas() {
         </Card>
       ) : (
         <>
-          {/* Espacios Comunes */}
           <Card className="mb-6">
             <h3 className="font-bold text-lg mb-4">Espacios Disponibles</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -255,7 +253,6 @@ export function Reservas() {
             </div>
           </Card>
 
-          {/* Reservas Pendientes de Aprobación */}
           {reservasPendientes.length > 0 && (
             <Card className="mb-6 border-yellow-200">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
@@ -288,6 +285,7 @@ export function Reservas() {
                         <div className="flex gap-2 ml-4">
                           <Button
                             onClick={() => handleAprobarReserva(reserva.id)}
+                            className="text-sm px-3 py-1"
                           >
                             <CheckCircle size={16} className="mr-1" />
                             Aprobar
@@ -295,6 +293,7 @@ export function Reservas() {
                           <Button
                             variant="danger"
                             onClick={() => handleRechazarReserva(reserva.id)}
+                            className="text-sm px-3 py-1"
                           >
                             <XCircle size={16} className="mr-1" />
                             Rechazar
@@ -308,7 +307,6 @@ export function Reservas() {
             </Card>
           )}
 
-          {/* Lista de Reservas Confirmadas */}
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-gray-600">Cargando reservas...</div>
@@ -349,6 +347,7 @@ export function Reservas() {
                         <Button
                           variant="danger"
                           onClick={() => handleDeleteReserva(reserva.id)}
+                          className="text-sm px-3 py-1"
                         >
                           <Trash2 size={16} />
                         </Button>
@@ -459,6 +458,14 @@ export function Reservas() {
             </select>
           </div>
 
+          {/* Mostrar disponibilidad si hay espacio y fecha seleccionados */}
+          {reservaForm.espacio_id && reservaForm.fecha_inicio && (
+            <CalendarioDisponibilidad 
+              espacioId={reservaForm.espacio_id}
+              fecha={reservaForm.fecha_inicio}
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Fecha Inicio *"
@@ -525,6 +532,82 @@ export function Reservas() {
           </div>
         </form>
       </Modal>
+    </div>
+  )
+}
+
+// Componente para mostrar disponibilidad del día
+function CalendarioDisponibilidad({ espacioId, fecha }: { espacioId: string, fecha: string }) {
+  const { data: reservasDelDia } = useQuery({
+    queryKey: ['reservas-dia', espacioId, fecha],
+    queryFn: async () => {
+      if (!espacioId || !fecha) return []
+      
+      const fechaInicio = `${fecha}T00:00:00`
+      const fechaFin = `${fecha}T23:59:59`
+      
+      const { data, error } = await supabase
+        .from('reservas')
+        .select(`
+          *,
+          departamento:departamentos(numero)
+        `)
+        .eq('espacio_id', espacioId)
+        .gte('fecha_inicio', fechaInicio)
+        .lte('fecha_fin', fechaFin)
+        .neq('estado', 'cancelada')
+        .order('fecha_inicio')
+      
+      if (error) throw error
+      return data
+    },
+    enabled: !!espacioId && !!fecha
+  })
+
+  if (!reservasDelDia || reservasDelDia.length === 0) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+        <p className="text-sm text-green-800">
+          ✅ No hay reservas este día. Totalmente disponible.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <p className="text-sm font-semibold text-blue-800 mb-3">
+        📅 Reservas existentes este día:
+      </p>
+      <div className="space-y-2">
+        {reservasDelDia.map((r: any) => (
+          <div key={r.id} className="bg-white rounded-lg p-3 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-800">
+                  Depto {r.departamento?.numero}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {new Date(r.fecha_inicio).toLocaleTimeString('es-CL', { 
+                    hour: '2-digit',
+                    minute: '2-digit' 
+                  })} - {new Date(r.fecha_fin).toLocaleTimeString('es-CL', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                r.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
+                r.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {r.estado}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

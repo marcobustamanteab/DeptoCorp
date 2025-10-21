@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@deptocorp/supabase-client'
 import toast from 'react-hot-toast'
+import { verificarDisponibilidadEspacio, formatearMensajeConflicto } from '../utils/reservasValidation'
 
 export function useReservas(edificioId?: string) {
   const queryClient = useQueryClient()
@@ -28,11 +29,30 @@ export function useReservas(edificioId?: string) {
 
   const createMutation = useMutation({
     mutationFn: async (reserva: any) => {
+      // 1. VALIDAR DISPONIBILIDAD
+      const { available, conflictingReservas, error: validationError } = 
+        await verificarDisponibilidadEspacio(
+          reserva.espacio_id,
+          reserva.fecha_inicio,
+          reserva.fecha_fin
+        )
+
+      if (validationError) {
+        throw new Error('Error al verificar disponibilidad')
+      }
+
+      if (!available) {
+        const mensaje = formatearMensajeConflicto(conflictingReservas)
+        throw new Error(mensaje)
+      }
+
+      // 2. CREAR RESERVA
       const { data, error } = await supabase
         .from('reservas')
         .insert(reserva)
         .select()
         .single()
+        
       if (error) throw error
       return data
     },
@@ -47,12 +67,33 @@ export function useReservas(edificioId?: string) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...reserva }: any) => {
+      // Si está cambiando fechas, validar disponibilidad
+      if (reserva.fecha_inicio && reserva.fecha_fin && reserva.espacio_id) {
+        const { available, conflictingReservas, error: validationError } = 
+          await verificarDisponibilidadEspacio(
+            reserva.espacio_id,
+            reserva.fecha_inicio,
+            reserva.fecha_fin,
+            id // Excluir la reserva actual
+          )
+
+        if (validationError) {
+          throw new Error('Error al verificar disponibilidad')
+        }
+
+        if (!available) {
+          const mensaje = formatearMensajeConflicto(conflictingReservas)
+          throw new Error(mensaje)
+        }
+      }
+
       const { data, error } = await supabase
         .from('reservas')
         .update(reserva)
         .eq('id', id)
         .select()
         .single()
+        
       if (error) throw error
       return data
     },

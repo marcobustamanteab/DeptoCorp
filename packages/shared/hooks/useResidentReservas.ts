@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@deptocorp/supabase-client'
 import toast from 'react-hot-toast'
+import { useEffect } from 'react'
+import { verificarDisponibilidadEspacio, formatearMensajeConflicto } from '../utils/reservasValidation'
 
 interface EspacioComun {
   id: string
@@ -89,7 +91,7 @@ export function useReservasPorEspacio(espacioId: string, fecha: string) {
   })
 }
 
-// Hook para crear reserva
+// Hook para crear reserva con validación
 export function useCreateReserva() {
   const queryClient = useQueryClient()
 
@@ -102,11 +104,29 @@ export function useCreateReserva() {
       fecha_fin: string
       notas?: string
     }) => {
+      // 1. VALIDAR DISPONIBILIDAD PRIMERO
+      const { available, conflictingReservas, error: validationError } = 
+        await verificarDisponibilidadEspacio(
+          reserva.espacio_id,
+          reserva.fecha_inicio,
+          reserva.fecha_fin
+        )
+
+      if (validationError) {
+        throw new Error('Error al verificar disponibilidad')
+      }
+
+      if (!available) {
+        const mensaje = formatearMensajeConflicto(conflictingReservas)
+        throw new Error(mensaje)
+      }
+
+      // 2. SI ESTÁ DISPONIBLE, CREAR LA RESERVA
       const { data, error } = await supabase
         .from('reservas')
         .insert({
           ...reserva,
-          estado: 'pendiente'
+          estado: 'pendiente' // Residente crea como pendiente
         })
         .select()
         .single()
@@ -117,9 +137,9 @@ export function useCreateReserva() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residentReservas'] })
       queryClient.invalidateQueries({ queryKey: ['reservasEspacio'] })
-      toast.success('Reserva creada exitosamente')
+      toast.success('Reserva creada exitosamente. Pendiente de aprobación.')
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Error al crear reserva')
     }
   })
@@ -140,6 +160,7 @@ export function useCancelReserva() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residentReservas'] })
+      queryClient.invalidateQueries({ queryKey: ['reservasEspacio'] })
       toast.success('Reserva cancelada')
     },
     onError: () => {
