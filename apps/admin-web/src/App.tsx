@@ -1,3 +1,4 @@
+// apps/admin-web/src/App.tsx
 import { useAuth } from '../../../packages/shared/hooks/useAuth'
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
@@ -13,6 +14,7 @@ import { Pagos } from './pages/Pagos'
 import { Reservas } from './pages/Reservas'
 import { Reportes } from './pages/Reportes'
 import { ValidarComprobantes } from './pages/ValidarComprobantes'
+import { Notificaciones } from './pages/Notificaciones'
 import { BuildingLoader } from './components/BuildingLoader'
 
 function App() {
@@ -112,6 +114,7 @@ function App() {
           <Route path="/reservas" element={<Reservas />} />
           <Route path="/reportes" element={<Reportes />} />
           <Route path="/validar-comprobantes" element={<ValidarComprobantes />} />
+          <Route path="/notificaciones" element={<Notificaciones />} />
         </Routes>
       </DashboardLayout>
     </BrowserRouter>

@@ -33,3 +33,6 @@ export {
   useSubirComprobante,
   useComprobantesGasto
 } from './useComprobantes'
+
+export { useNotificaciones } from './useNotificaciones'
+export type { Notificacion } from './useNotificaciones'

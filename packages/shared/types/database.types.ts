@@ -293,6 +293,42 @@ export type Database = {
           },
         ]
       }
+      notificaciones: {
+        Row: {
+          created_at: string | null
+          id: string
+          leida: boolean | null
+          mensaje: string
+          metadata: Json | null
+          tipo: string
+          titulo: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          leida?: boolean | null
+          mensaje: string
+          metadata?: Json | null
+          tipo: string
+          titulo: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          leida?: boolean | null
+          mensaje?: string
+          metadata?: Json | null
+          tipo?: string
+          titulo?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pagos: {
         Row: {
           comprobante_url: string | null
@@ -539,7 +575,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      crear_notificacion: {
+        Args: {
+          p_mensaje: string
+          p_metadata?: Json
+          p_tipo: string
+          p_titulo: string
+          p_url?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

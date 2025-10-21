@@ -1,4 +1,6 @@
+// apps/admin-web/src/components/layout/Header.tsx
 import { Menu } from 'lucide-react'
+import { NotificationBell } from '../NotificationBell'
 
 interface HeaderProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +31,10 @@ export function Header({ user, onToggleSidebar }: HeaderProps) {
         </div>
         
         <div className="flex items-center gap-4">
+          {/* ✨ CAMPANA DE NOTIFICACIONES */}
+          <NotificationBell />
+          
+          {/* Avatar del usuario */}
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
             {user?.email?.[0].toUpperCase()}
           </div>
