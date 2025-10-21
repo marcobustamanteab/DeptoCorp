@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, DollarSign, Bell, Calendar, User } from 'lucide-react'
 import { useResidentProfile } from '@deptocorp/shared/hooks/useResidentProfile'
 import { useResidentGastos } from '@deptocorp/shared/hooks/useResidentGastos'
+import { NotificationBell } from '../NotificationBell'
 
 interface MainLayoutProps {
   children: ReactNode
@@ -39,10 +40,16 @@ export function MainLayout({ children, userId }: MainLayoutProps) {
                 Depto {profile?.departamento.numero || '...'}
               </p>
             </div>
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
-                {profile?.nombre.charAt(0) || 'U'}
-              </span>
+            <div className="flex items-center gap-2">
+              {/* CAMPANA DE NOTIFICACIONES */}
+              <NotificationBell />
+              
+              {/* Avatar */}
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-lg">
+                  {profile?.nombre.charAt(0) || 'U'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -70,15 +77,13 @@ export function MainLayout({ children, userId }: MainLayoutProps) {
               >
                 <div className="relative">
                   <Icon size={22} className={isActive ? 'text-blue-500' : 'text-gray-400'} />
-                  {tab.badge && tab.badge > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                       {tab.badge > 9 ? '9+' : tab.badge}
                     </span>
                   )}
                 </div>
-                <span className={`text-[10px] mt-1 font-medium ${
-                  isActive ? 'text-blue-500' : 'text-gray-500'
-                }`}>
+                <span className={`text-xs mt-1 ${isActive ? 'font-semibold' : ''}`}>
                   {tab.label}
                 </span>
               </button>

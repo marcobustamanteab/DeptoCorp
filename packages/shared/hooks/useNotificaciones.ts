@@ -21,13 +21,16 @@ export function useNotificaciones() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
-  // Obtener todas las notificaciones
+  // Obtener SOLO las notificaciones del usuario actual
   const { data: notificaciones = [], isLoading } = useQuery({
     queryKey: ['notificaciones'],
     queryFn: async () => {
+      if (!user?.id) return []
+
       const { data, error } = await supabase
         .from('notificaciones')
         .select('*')
+        .eq('user_id', user.id) // ✨ FILTRAR POR USER_ID
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -36,13 +39,16 @@ export function useNotificaciones() {
     enabled: !!user,
   })
 
-  // Contar notificaciones no leídas
+  // Contar notificaciones no leídas DEL USUARIO ACTUAL
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['notificaciones-unread-count'],
     queryFn: async () => {
+      if (!user?.id) return 0
+
       const { count, error } = await supabase
         .from('notificaciones')
         .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id) // ✨ FILTRAR POR USER_ID
         .eq('leida', false)
 
       if (error) throw error
@@ -54,10 +60,13 @@ export function useNotificaciones() {
   // Marcar como leída
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!user?.id) throw new Error('Usuario no autenticado')
+      
       const { data, error } = await supabase
         .from('notificaciones')
         .update({ leida: true })
         .eq('id', id)
+        .eq('user_id', user.id) // ✨ SEGURIDAD: Solo sus notificaciones
         .select()
         .single()
 
@@ -73,9 +82,12 @@ export function useNotificaciones() {
   // Marcar todas como leídas
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
+      if (!user?.id) return
+
       const { data, error } = await supabase
         .from('notificaciones')
         .update({ leida: true })
+        .eq('user_id', user.id) // ✨ FILTRAR POR USER_ID
         .eq('leida', false)
         .select()
 
@@ -92,10 +104,13 @@ export function useNotificaciones() {
   // Eliminar notificación
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!user?.id) throw new Error('Usuario no autenticado')
+      
       const { error } = await supabase
         .from('notificaciones')
         .delete()
         .eq('id', id)
+        .eq('user_id', user.id) // ✨ SEGURIDAD: Solo sus notificaciones
 
       if (error) throw error
     },
@@ -109,9 +124,12 @@ export function useNotificaciones() {
   // Eliminar todas las leídas
   const deleteAllReadMutation = useMutation({
     mutationFn: async () => {
+      if (!user?.id) return
+
       const { error } = await supabase
         .from('notificaciones')
         .delete()
+        .eq('user_id', user.id) // ✨ FILTRAR POR USER_ID
         .eq('leida', true)
 
       if (error) throw error
@@ -123,7 +141,7 @@ export function useNotificaciones() {
     },
   })
 
-  // Suscripción a cambios en tiempo real
+  // Suscripción a cambios en tiempo real (YA estaba bien filtrado)
   useEffect(() => {
     if (!user?.id) return
 
@@ -135,7 +153,7 @@ export function useNotificaciones() {
           event: '*',
           schema: 'public',
           table: 'notificaciones',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user.id}`, // ✅ Ya estaba filtrado
         },
         (payload) => {
           console.log('📬 Notificación en tiempo real:', payload)
