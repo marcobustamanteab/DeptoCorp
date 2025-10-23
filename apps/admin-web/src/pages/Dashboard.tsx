@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Card } from '../components/ui/Card'
 import { Building2, Users, DollarSign, AlertCircle, TrendingUp, Clock } from 'lucide-react'
 import { useDashboardStats } from '../../../../packages/shared/hooks/useDashboardStats'
@@ -44,7 +45,7 @@ export function Dashboard() {
     },
     {
       title: 'Gastos Pendientes',
-      value: `$${stats.montoGastosPendientes.toLocaleString()}`,
+      value: `$${stats.montoGastosPendientes.toLocaleString('es-CL')}`,
       subtitle: `${stats.totalGastosPendientes} departamentos`,
       icon: DollarSign,
       color: 'bg-yellow-500',

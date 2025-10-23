@@ -286,7 +286,7 @@ export const gastosDepartamentoService = {
     const gastosDeptos = departamentos.map(depto => ({
       gasto_comun_id: gastosComunId,
       departamento_id: depto.id,
-      monto: (gastoComun.monto_total * (depto.porcentaje_gastos || 0)) / 100,
+      monto: Math.round((gastoComun.monto_total * (depto.porcentaje_gastos || 0)) / 100),
       estado: 'pendiente' as const,
     }))
 

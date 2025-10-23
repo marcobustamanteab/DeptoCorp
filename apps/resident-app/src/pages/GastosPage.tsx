@@ -127,7 +127,7 @@ export function GastosPage({ userId }: GastosPageProps) {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-gray-700">
-                    ${gasto.monto.toLocaleString('es-CL')}
+                    ${Math.round(gasto.monto).toLocaleString('es-CL')}
                   </p>
                 </div>
               </div>

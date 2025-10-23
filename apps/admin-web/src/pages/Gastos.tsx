@@ -280,19 +280,19 @@ export function Gastos() {
                       <div>
                         <p className="text-xs text-gray-600">Monto Total</p>
                         <p className="text-lg font-bold text-gray-800">
-                          ${gasto.monto_total.toLocaleString()}
+                          ${gasto.monto_total.toLocaleString('es-CL')}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-600">Recaudado</p>
                         <p className="text-lg font-bold text-green-600">
-                          ${stats.montoPagado.toLocaleString()}
+                          ${stats.montoPagado.toLocaleString('es-CL')}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-600">Pendiente</p>
                         <p className="text-lg font-bold text-red-600">
-                          ${stats.montoPendiente.toLocaleString()}
+                          ${stats.montoPendiente.toLocaleString('es-CL')}
                         </p>
                       </div>
                       <div>
@@ -470,12 +470,12 @@ export function Gastos() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-600">Monto Total</p>
-                <p className="text-lg font-bold">${selectedGasto?.monto_total.toLocaleString()}</p>
+                <p className="text-lg font-bold">${selectedGasto?.monto_total.toLocaleString('es-CL')}</p>
               </div>
               <div>
                 <p className="text-gray-600">Vencimiento</p>
                 <p className="text-lg font-bold">
-                  {selectedGasto && new Date(selectedGasto.fecha_vencimiento).toLocaleDateString()}
+                  {selectedGasto && new Date(selectedGasto.fecha_vencimiento).toLocaleString('es-CL')}
                 </p>
               </div>
             </div>
@@ -496,7 +496,7 @@ export function Gastos() {
                   <tr key={gd.id} className="border-t">
                     <td className="px-4 py-2">{gd.departamento?.numero}</td>
                     <td className="px-4 py-2 text-right font-medium">
-                      ${Number(gd.monto).toLocaleString()}
+                      ${Number(gd.monto).toLocaleString('es-CL')}
                     </td>
                     <td className="px-4 py-2 text-center">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -549,7 +549,7 @@ export function Gastos() {
               </p>
               <p className="text-sm text-gray-600 mt-2">Monto a pagar</p>
               <p className="font-bold text-2xl text-green-600">
-                ${Number(selectedGastoDepto.monto).toLocaleString()}
+                ${Number(selectedGastoDepto.monto).toLocaleString('es-CL')}
               </p>
             </div>
           )}

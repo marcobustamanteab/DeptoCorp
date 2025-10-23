@@ -100,7 +100,7 @@ export function Pagos() {
             <div>
               <p className="text-gray-600 text-sm">Monto Total</p>
               <p className="text-3xl font-bold text-green-600 mt-2">
-                ${totalPagado.toLocaleString()}
+                ${totalPagado.toLocaleString('es-CL')}
               </p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
@@ -233,7 +233,7 @@ export function Pagos() {
                       }
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-medium text-gray-800">
-                      ${Number(pago.monto).toLocaleString()}
+                      ${Number(pago.monto).toLocaleString('es-CL')}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 capitalize">
                       {pago.metodo_pago || '-'}
