@@ -6,6 +6,7 @@ import { supabase } from '../../../../packages/supabase-client/src/client'
 import { FileText, CheckCircle, XCircle, Eye, Calendar, DollarSign, Home, User } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 import { format } from 'date-fns'
+import { showConfirm } from '../utils/alerts'
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -184,15 +185,19 @@ export function ValidarComprobantes() {
     setSelectedPago(pago)
     setShowModal(true)
   }
-
-  const handleValidar = (estado: 'confirmado' | 'rechazado') => {
+  
+  const handleValidar = async (estado: 'confirmado' | 'rechazado') => {
     if (!selectedPago) return
     
     const mensaje = estado === 'confirmado' 
       ? '¿Confirmar este comprobante como válido?' 
       : '¿Rechazar este comprobante?'
     
-    if (window.confirm(mensaje)) {
+    const confirmText = estado === 'confirmado' ? 'Sí, confirmar' : 'Sí, rechazar'
+    
+    const confirmed = await showConfirm(mensaje, '¿Estás seguro?', confirmText, 'Cancelar')
+    
+    if (confirmed) {
       validarPago.mutate({
         pagoId: selectedPago.id,
         estado,
